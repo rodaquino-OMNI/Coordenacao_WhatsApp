@@ -1,0 +1,363 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20.x'
+  PYTHON_VERSION: '3.11'
+  GO_VERSION: '1.21'
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+jobs:
+  # Job 1: Code Quality & Linting
+  code-quality:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [patient-service, appointment-service, notification-service, frontend]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: '${{ matrix.service }}/package-lock.json'
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.npm
+            ${{ matrix.service }}/node_modules
+          key: ${{ runner.os }}-${{ matrix.service }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.service }}-
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.service }}
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: ${{ matrix.service }}
+        run: npm run lint
+
+      - name: Run Prettier
+        working-directory: ${{ matrix.service }}
+        run: npm run format:check
+
+      - name: Type checking
+        if: matrix.service == 'frontend'
+        working-directory: ${{ matrix.service }}
+        run: npm run type-check
+
+  # Job 2: Unit Tests
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: code-quality
+    strategy:
+      matrix:
+        service: [patient-service, appointment-service, notification-service, frontend]
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: '${{ matrix.service }}/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.service }}
+        run: npm ci
+
+      - name: Run unit tests
+        working-directory: ${{ matrix.service }}
+        env:
+          DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-secret
+          NODE_ENV: test
+        run: |
+          npm run test:unit -- --coverage --coverageReporters=lcov --coverageReporters=text
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./${{ matrix.service }}/coverage/lcov.info
+          flags: ${{ matrix.service }}
+          name: ${{ matrix.service }}-coverage
+
+  # Job 3: Integration Tests
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        ports:
+          - 5672:5672
+          - 15672:15672
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies for all services
+        run: |
+          for service in patient-service appointment-service notification-service; do
+            (cd $service && npm ci)
+          done
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb
+        run: |
+          for service in patient-service appointment-service; do
+            (cd $service && npm run migrate:test)
+          done
+
+      - name: Run integration tests
+        env:
+          DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb
+          REDIS_URL: redis://localhost:6379
+          RABBITMQ_URL: amqp://guest:guest@localhost:5672
+          JWT_SECRET: test-secret
+          NODE_ENV: test
+        run: |
+          for service in patient-service appointment-service notification-service; do
+            (cd $service && npm run test:integration)
+          done
+
+  # Job 4: Build and Push Docker Images
+  build-images:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    if: github.event_name == 'push'
+    strategy:
+      matrix:
+        service: [patient-service, appointment-service, notification-service, frontend]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.service }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+            VERSION=${{ steps.meta.outputs.version }}
+
+  # Job 5: E2E Tests
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: build-images
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Playwright
+        working-directory: e2e-tests
+        run: |
+          npm ci
+          npx playwright install --with-deps
+
+      - name: Start services with Docker Compose
+        run: |
+          docker-compose -f docker-compose.test.yml up -d
+          ./scripts/wait-for-services.sh
+
+      - name: Run E2E tests
+        working-directory: e2e-tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: playwright-report
+          path: e2e-tests/playwright-report/
+          retention-days: 30
+
+      - name: Stop services
+        if: always()
+        run: docker-compose -f docker-compose.test.yml down -v
+
+  # Job 6: Performance Tests
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: build-images
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up K6
+        run: |
+          sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Start services
+        run: |
+          docker-compose -f docker-compose.test.yml up -d
+          ./scripts/wait-for-services.sh
+
+      - name: Run performance tests
+        run: |
+          k6 run --out influxdb=http://localhost:8086/k6 tests/performance/load-test.js
+
+      - name: Upload performance results
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-results
+          path: performance-results/
+          retention-days: 30
+
+  # Job 7: Collect Metrics
+  collect-metrics:
+    name: Collect Build Metrics
+    runs-on: ubuntu-latest
+    needs: [code-quality, unit-tests, integration-tests, build-images]
+    if: always()
+    steps:
+      - name: Collect workflow metrics
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const workflow_run = context.payload.workflow_run || context.payload;
+            const metrics = {
+              workflow_id: workflow_run.id,
+              run_number: context.runNumber,
+              run_id: context.runId,
+              status: '${{ job.status }}',
+              branch: context.ref,
+              sha: context.sha,
+              event: context.eventName,
+              actor: context.actor,
+              started_at: workflow_run.created_at,
+              completed_at: new Date().toISOString(),
+              duration_seconds: Math.floor((new Date() - new Date(workflow_run.created_at)) / 1000)
+            };
+            
+            // Send metrics to monitoring system
+            console.log('Build metrics:', JSON.stringify(metrics, null, 2));
+            
+            // Store metrics as artifact
+            const fs = require('fs');
+            fs.writeFileSync('build-metrics.json', JSON.stringify(metrics, null, 2));
+
+      - name: Upload metrics
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-metrics
+          path: build-metrics.json

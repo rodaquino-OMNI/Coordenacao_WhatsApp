@@ -1,0 +1,150 @@
+# Backend API Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: austa-backend-api
+  namespace: austa-care
+  labels:
+    app: austa-backend
+    component: api
+    version: v1
+spec:
+  replicas: 3
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: austa-backend
+      component: api
+  template:
+    metadata:
+      labels:
+        app: austa-backend
+        component: api
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: austa-backend
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - austa-backend
+              topologyKey: kubernetes.io/hostname
+      containers:
+      - name: api
+        image: austa-care/backend:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3000"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: austa-database-secret
+              key: connection-string
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: austa-redis-secret
+              key: connection-string
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: austa-auth-secret
+              key: jwt-secret
+        - name: WHATSAPP_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: austa-whatsapp-secret
+              key: api-key
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: http
+            httpHeaders:
+            - name: X-Health-Check
+              value: liveness
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: http
+            httpHeaders:
+            - name: X-Health-Check
+              value: readiness
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health/startup
+            port: http
+          initialDelaySeconds: 0
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 30
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: config
+        configMap:
+          name: austa-backend-config
+      - name: tmp
+        emptyDir: {}
+---
+# Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: austa-backend
+  namespace: austa-care
+  labels:
+    app: austa-backend

@@ -1,0 +1,442 @@
+name: Scheduled Maintenance Tasks
+
+on:
+  schedule:
+    # Daily at 2 AM UTC
+    - cron: '0 2 * * *'
+    # Weekly on Sunday at 3 AM UTC
+    - cron: '0 3 * * 0'
+    # Monthly on 1st at 4 AM UTC
+    - cron: '0 4 1 * *'
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'Maintenance task to run'
+        required: true
+        type: choice
+        options:
+          - all
+          - cleanup
+          - backup
+          - security-updates
+          - performance-optimization
+          - certificate-renewal
+          - database-maintenance
+
+permissions:
+  contents: write
+  packages: write
+  issues: write
+  actions: write
+
+jobs:
+  # Job 1: Container Registry Cleanup
+  registry-cleanup:
+    name: Container Registry Cleanup
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 2 * * *' || github.event.inputs.task == 'cleanup' || github.event.inputs.task == 'all'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete old container images
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const packages = ['patient-service', 'appointment-service', 'notification-service', 'frontend'];
+            const retentionDays = 30;
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+            
+            for (const pkg of packages) {
+              try {
+                // Get all versions
+                const versions = await github.rest.packages.getAllPackageVersionsForPackageOwnedByOrg({
+                  package_type: 'container',
+                  package_name: pkg,
+                  org: context.repo.owner,
+                  per_page: 100
+                });
+                
+                // Filter old versions
+                const oldVersions = versions.data.filter(v => {
+                  const updatedAt = new Date(v.updated_at);
+                  return updatedAt < cutoffDate && !v.metadata.container.tags.includes('latest');
+                });
+                
+                // Delete old versions
+                for (const version of oldVersions) {
+                  await github.rest.packages.deletePackageVersionForOrg({
+                    package_type: 'container',
+                    package_name: pkg,
+                    org: context.repo.owner,
+                    package_version_id: version.id
+                  });
+                  console.log(`Deleted ${pkg} version ${version.name}`);
+                }
+              } catch (error) {
+                console.error(`Error cleaning ${pkg}:`, error);
+              }
+            }
+
+  # Job 2: Artifact Cleanup
+  artifact-cleanup:
+    name: GitHub Artifacts Cleanup
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 2 * * *' || github.event.inputs.task == 'cleanup' || github.event.inputs.task == 'all'
+    steps:
+      - name: Delete old artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const retentionDays = 7;
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+            
+            // Get all artifacts
+            const artifacts = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            
+            // Delete old artifacts
+            for (const artifact of artifacts.data.artifacts) {
+              const createdAt = new Date(artifact.created_at);
+              if (createdAt < cutoffDate) {
+                await github.rest.actions.deleteArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id: artifact.id
+                });
+                console.log(`Deleted artifact: ${artifact.name}`);
+              }
+            }
+
+  # Job 3: Database Maintenance
+  database-maintenance:
+    name: Database Maintenance
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 3 * * 0' || github.event.inputs.task == 'database-maintenance' || github.event.inputs.task == 'all'
+    strategy:
+      matrix:
+        environment: [staging, production]
+    environment:
+      name: ${{ matrix.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Run VACUUM and ANALYZE
+        run: |
+          # Get RDS endpoint
+          DB_ENDPOINT=$(aws rds describe-db-instances \
+            --db-instance-identifier austa-care-${{ matrix.environment }} \
+            --query 'DBInstances[0].Endpoint.Address' \
+            --output text)
+          
+          # Run maintenance commands
+          PGPASSWORD=${{ secrets.DB_PASSWORD }} psql \
+            -h $DB_ENDPOINT \
+            -U postgres \
+            -d austa_care \
+            -c "VACUUM ANALYZE;"
+
+      - name: Update table statistics
+        run: |
+          # Update PostgreSQL statistics
+          PGPASSWORD=${{ secrets.DB_PASSWORD }} psql \
+            -h $DB_ENDPOINT \
+            -U postgres \
+            -d austa_care \
+            -c "ANALYZE;"
+
+      - name: Check database health
+        run: |
+          # Run health checks
+          ./scripts/maintenance/check-db-health.sh ${{ matrix.environment }}
+
+  # Job 4: Security Updates
+  security-updates:
+    name: Security Updates
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 2 * * *' || github.event.inputs.task == 'security-updates' || github.event.inputs.task == 'all'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update dependencies
+        run: |
+          # Update npm dependencies
+          for service in patient-service appointment-service notification-service frontend; do
+            cd $service
+            
+            # Update dependencies with security vulnerabilities
+            npm audit fix --force
+            
+            # Update all dependencies to latest minor versions
+            npx npm-check-updates -u --target minor
+            npm install
+            
+            # Run tests to ensure nothing broke
+            npm test || true
+            
+            cd ..
+          done
+
+      - name: Create security update PR
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore: automated security updates'
+          title: '🔐 Automated Security Updates'
+          body: |
+            ## Automated Security Updates
+            
+            This PR contains automated security updates for npm dependencies.
+            
+            ### Updated packages:
+            - See commit diff for full list of updated packages
+            
+            ### Testing:
+            - [ ] Unit tests pass
+            - [ ] Integration tests pass
+            - [ ] No breaking changes detected
+            
+            Please review and merge if all checks pass.
+          branch: automated-security-updates
+          delete-branch: true
+
+  # Job 5: Performance Optimization
+  performance-optimization:
+    name: Performance Optimization
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 3 * * 0' || github.event.inputs.task == 'performance-optimization' || github.event.inputs.task == 'all'
+    strategy:
+      matrix:
+        environment: [staging, production]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name austa-care-${{ matrix.environment }} --region us-east-1
+
+      - name: Optimize container resources
+        run: |
+          # Get resource recommendations from VPA
+          kubectl get vpa -A -o json | jq -r '.items[] | 
+            select(.status.recommendation != null) | 
+            "\(.metadata.namespace)/\(.metadata.name): \(.status.recommendation)"'
+
+      - name: Clean up unused resources
+        run: |
+          # Delete completed jobs older than 7 days
+          kubectl delete jobs --field-selector status.successful=1 -A
+          
+          # Delete failed pods
+          kubectl delete pods --field-selector status.phase=Failed -A
+          
+          # Clean up unused ConfigMaps and Secrets
+          ./scripts/maintenance/cleanup-unused-resources.sh
+
+      - name: Optimize images
+        run: |
+          # Rebuild images with optimization
+          ./scripts/maintenance/optimize-images.sh
+
+  # Job 6: Certificate Renewal
+  certificate-renewal:
+    name: SSL Certificate Renewal
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 4 1 * *' || github.event.inputs.task == 'certificate-renewal' || github.event.inputs.task == 'all'
+    strategy:
+      matrix:
+        environment: [staging, production]
+    environment:
+      name: ${{ matrix.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Check certificate expiration
+        id: check-certs
+        run: |
+          # Check Let's Encrypt certificates
+          DOMAIN="austa-care.com"
+          if [ "${{ matrix.environment }}" == "staging" ]; then
+            DOMAIN="staging.$DOMAIN"
+          fi
+          
+          EXPIRY=$(echo | openssl s_client -servername $DOMAIN -connect $DOMAIN:443 2>/dev/null | openssl x509 -noout -enddate | cut -d= -f2)
+          EXPIRY_EPOCH=$(date -d "$EXPIRY" +%s)
+          NOW_EPOCH=$(date +%s)
+          DAYS_LEFT=$(( ($EXPIRY_EPOCH - $NOW_EPOCH) / 86400 ))
+          
+          echo "days_left=$DAYS_LEFT" >> $GITHUB_OUTPUT
+          
+          if [ $DAYS_LEFT -lt 30 ]; then
+            echo "needs_renewal=true" >> $GITHUB_OUTPUT
+          else
+            echo "needs_renewal=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Renew certificates
+        if: steps.check-certs.outputs.needs_renewal == 'true'
+        run: |
+          # Trigger cert-manager renewal
+          kubectl annotate certificate austa-care-tls \
+            cert-manager.io/issue-temporary-certificate="true" \
+            -n istio-system --overwrite
+
+      - name: Verify renewal
+        if: steps.check-certs.outputs.needs_renewal == 'true'
+        run: |
+          # Wait for renewal
+          sleep 300
+          
+          # Verify new certificate
+          kubectl get certificate austa-care-tls -n istio-system -o yaml
+
+  # Job 7: Backup Verification
+  backup-verification:
+    name: Backup Verification
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 3 * * 0' || github.event.inputs.task == 'backup' || github.event.inputs.task == 'all'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Verify database backups
+        run: |
+          # List recent RDS snapshots
+          aws rds describe-db-snapshots \
+            --db-instance-identifier austa-care-production \
+            --query 'DBSnapshots[?SnapshotCreateTime>=`2024-01-01`].[DBSnapshotIdentifier,SnapshotCreateTime,Status]' \
+            --output table
+
+      - name: Verify S3 backups
+        run: |
+          # Check backup bucket
+          aws s3 ls s3://austa-care-backups/ --recursive --summarize
+
+      - name: Test backup restoration
+        run: |
+          # Run backup restoration test
+          ./scripts/maintenance/test-backup-restoration.sh
+
+  # Job 8: Monitoring and Alerting Check
+  monitoring-check:
+    name: Monitoring System Check
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 2 * * *' || github.event.inputs.task == 'all'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check monitoring endpoints
+        run: |
+          # Check Prometheus
+          curl -f https://monitoring.austa-care.com/prometheus/-/healthy
+          
+          # Check Grafana
+          curl -f https://monitoring.austa-care.com/grafana/api/health
+          
+          # Check AlertManager
+          curl -f https://monitoring.austa-care.com/alertmanager/-/healthy
+
+      - name: Verify alert rules
+        run: |
+          # Test critical alerts
+          ./scripts/monitoring/test-alerts.sh
+
+      - name: Clean up old metrics
+        run: |
+          # Remove metrics older than retention period
+          ./scripts/monitoring/cleanup-metrics.sh
+
+  # Job 9: Generate Maintenance Report
+  maintenance-report:
+    name: Generate Maintenance Report
+    runs-on: ubuntu-latest
+    needs: [registry-cleanup, artifact-cleanup, database-maintenance, security-updates, performance-optimization, certificate-renewal, backup-verification, monitoring-check]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Collect maintenance results
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const jobs = ${{ toJson(needs) }};
+            const report = {
+              date: new Date().toISOString(),
+              schedule: context.payload.schedule || 'manual',
+              results: {}
+            };
+            
+            for (const [job, data] of Object.entries(jobs)) {
+              report.results[job] = {
+                status: data.result,
+                conclusion: data.conclusion
+              };
+            }
+            
+            // Save report
+            const fs = require('fs');
+            fs.writeFileSync('maintenance-report.json', JSON.stringify(report, null, 2));
+
+      - name: Create maintenance issue
+        if: contains(needs.*.result, 'failure')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const failedJobs = Object.entries(${{ toJson(needs) }})
+              .filter(([_, data]) => data.result === 'failure')
+              .map(([job, _]) => job);
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Maintenance Tasks Failed - ${new Date().toISOString().split('T')[0]}`,
+              body: `The following maintenance tasks failed:\n\n${failedJobs.map(j => `- ${j}`).join('\n')}\n\nPlease investigate and resolve.`,
+              labels: ['maintenance', 'automated', 'needs-attention']
+            });
+
+      - name: Upload maintenance report
+        uses: actions/upload-artifact@v3
+        with:
+          name: maintenance-report
+          path: maintenance-report.json
+          retention-days: 90

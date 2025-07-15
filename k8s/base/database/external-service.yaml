@@ -1,0 +1,35 @@
+# External RDS Database Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: austa-postgres-rds
+  namespace: austa-care
+  labels:
+    app: austa-database
+    component: postgres
+    type: external
+spec:
+  type: ExternalName
+  externalName: austa-care-prod.cluster-xxxxx.us-east-1.rds.amazonaws.com
+  ports:
+  - port: 5432
+    targetPort: 5432
+    protocol: TCP
+---
+# External Redis Elasticache Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: austa-redis-elasticache
+  namespace: austa-care
+  labels:
+    app: austa-cache
+    component: redis
+    type: external
+spec:
+  type: ExternalName
+  externalName: austa-care-redis.xxxxx.cache.amazonaws.com
+  ports:
+  - port: 6379
+    targetPort: 6379
+    protocol: TCP

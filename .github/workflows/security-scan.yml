@@ -1,0 +1,290 @@
+name: Security Scanning Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run security scan daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # Job 1: Static Application Security Testing (SAST)
+  sast-scan:
+    name: SAST Scan
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [patient-service, appointment-service, notification-service, frontend]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Semgrep SAST
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/nodejs
+            p/typescript
+            p/react
+            p/owasp-top-ten
+            p/jwt
+          generateSarif: true
+          
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep-${{ matrix.service }}
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: ${{ matrix.service }}
+          args: >
+            -Dsonar.projectKey=austa-care-${{ matrix.service }}
+            -Dsonar.organization=austa-care
+            -Dsonar.sources=src
+            -Dsonar.tests=tests
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+
+  # Job 2: Dependency Scanning
+  dependency-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [patient-service, appointment-service, notification-service, frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Snyk Security Scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --project-name=${{ matrix.service }}
+          file: ${{ matrix.service }}/package.json
+
+      - name: Upload Snyk results to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: snyk.sarif
+
+      - name: OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'austa-care-${{ matrix.service }}'
+          path: './${{ matrix.service }}'
+          format: 'ALL'
+          args: >
+            --enableRetired
+            --enableExperimental
+
+      - name: Upload OWASP results
+        uses: actions/upload-artifact@v3
+        with:
+          name: dependency-check-${{ matrix.service }}
+          path: reports/
+
+  # Job 3: Container Image Scanning
+  container-scan:
+    name: Container Security Scan
+    runs-on: ubuntu-latest
+    needs: [sast-scan, dependency-scan]
+    if: github.event_name == 'push'
+    strategy:
+      matrix:
+        service: [patient-service, appointment-service, notification-service, frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build container image
+        run: |
+          docker build -t austa-care/${{ matrix.service }}:scan ./${{ matrix.service }}
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: austa-care/${{ matrix.service }}:scan
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+
+      - name: Upload Trivy scan results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: trivy-${{ matrix.service }}
+
+      - name: Run Grype vulnerability scanner
+        uses: anchore/scan-action@v3
+        with:
+          image: austa-care/${{ matrix.service }}:scan
+          fail-build: true
+          severity-cutoff: high
+
+      - name: Container structure test
+        run: |
+          wget https://storage.googleapis.com/container-structure-test/latest/container-structure-test-linux-amd64 -O container-structure-test
+          chmod +x container-structure-test
+          ./container-structure-test test --image austa-care/${{ matrix.service }}:scan --config ./${{ matrix.service }}/container-test.yaml
+
+  # Job 4: Infrastructure as Code Scanning
+  iac-scan:
+    name: IaC Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkov IaC Scan
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: infrastructure/terraform
+          framework: terraform
+          output_format: sarif
+          output_file_path: checkov.sarif
+          soft_fail: false
+          skip_check: CKV_AWS_18,CKV_AWS_21
+
+      - name: Upload Checkov results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: checkov.sarif
+          category: checkov-terraform
+
+      - name: Terrascan IaC scan
+        uses: tenable/terrascan-action@main
+        with:
+          iac_type: 'terraform'
+          iac_dir: 'infrastructure/terraform'
+          policy_type: 'aws'
+          sarif_upload: true
+
+      - name: tfsec scan
+        uses: aquasecurity/tfsec-action@v1.0.0
+        with:
+          working_directory: infrastructure/terraform
+          format: sarif
+          sarif_file: tfsec.sarif
+
+      - name: Upload tfsec results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: tfsec.sarif
+
+  # Job 5: Secret Scanning
+  secret-scan:
+    name: Secret Detection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug --only-verified
+
+      - name: GitLeaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Job 6: DAST Scan (for staging environment)
+  dast-scan:
+    name: Dynamic Application Security Testing
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    needs: [sast-scan, dependency-scan, container-scan]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: OWASP ZAP Scan
+        uses: zaproxy/action-full-scan@v0.7.0
+        with:
+          target: 'https://staging-api.austa-care.com'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a -j -l WARN'
+
+      - name: Upload ZAP results
+        uses: actions/upload-artifact@v3
+        with:
+          name: zap-scan-results
+          path: report_html.html
+
+  # Job 7: Compliance Check
+  compliance-check:
+    name: Security Compliance Check
+    runs-on: ubuntu-latest
+    needs: [sast-scan, dependency-scan, container-scan, iac-scan, secret-scan]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check HIPAA Compliance
+        run: |
+          # Run custom HIPAA compliance checks
+          ./scripts/security/hipaa-compliance-check.sh
+
+      - name: Check SOC2 Compliance
+        run: |
+          # Run SOC2 compliance checks
+          ./scripts/security/soc2-compliance-check.sh
+
+      - name: Generate Security Report
+        run: |
+          # Aggregate all security findings
+          ./scripts/security/generate-security-report.sh
+
+      - name: Upload compliance report
+        uses: actions/upload-artifact@v3
+        with:
+          name: compliance-report
+          path: compliance-report/
+
+  # Job 8: Security Gate
+  security-gate:
+    name: Security Gate Decision
+    runs-on: ubuntu-latest
+    needs: [compliance-check]
+    if: always()
+    steps:
+      - name: Evaluate security posture
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const jobs = ${{ toJson(needs) }};
+            const failed_jobs = Object.entries(jobs).filter(([job, data]) => data.result === 'failure');
+            
+            if (failed_jobs.length > 0) {
+              core.setFailed(`Security gate failed. Failed jobs: ${failed_jobs.map(j => j[0]).join(', ')}`);
+              
+              // Create issue for security failures
+              if (context.eventName === 'push' && context.ref === 'refs/heads/main') {
+                await github.rest.issues.create({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: `Security Gate Failed - ${new Date().toISOString()}`,
+                  body: `Security scanning detected vulnerabilities:\n\n${failed_jobs.map(j => `- ${j[0]}: ${j[1].result}`).join('\n')}`,
+                  labels: ['security', 'critical', 'automated']
+                });
+              }
+            }

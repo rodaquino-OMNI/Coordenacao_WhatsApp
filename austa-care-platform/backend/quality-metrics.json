@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-07-15T11:10:06Z",
+  "baseline_errors": 127,
+  "current_errors": 123,
+  "improvement": 4,
+  "improvement_percentage": 3,
+  "categories": {
+    "unknown_errors": 15,
+    "type_mismatches": 39,
+    "missing_properties": 34,
+    "import_issues": 14
+  },
+  "quality_score": -2.30,
+  "regression_detected": false
+}

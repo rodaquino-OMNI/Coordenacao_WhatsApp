@@ -1,0 +1,123 @@
+# Main Ingress Controller
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: austa-care-ingress
+  namespace: austa-care
+  labels:
+    app: austa-care
+    component: ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://app.austacare.com, https://admin.austacare.com"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/limit-rps: "20"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+spec:
+  tls:
+  - hosts:
+    - app.austacare.com
+    - api.austacare.com
+    - admin.austacare.com
+    secretName: austa-care-tls
+  rules:
+  # Frontend PWA
+  - host: app.austacare.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: austa-frontend-pwa
+            port:
+              number: 80
+  # Backend API
+  - host: api.austacare.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: austa-backend-api
+            port:
+              number: 80
+      # WhatsApp webhook specific path
+      - path: /webhook/whatsapp
+        pathType: Exact
+        backend:
+          service:
+            name: austa-whatsapp-webhook
+            port:
+              number: 80
+      # ML inference endpoints
+      - path: /api/v1/ml/
+        pathType: Prefix
+        backend:
+          service:
+            name: austa-ml-inference
+            port:
+              number: 80
+  # Admin Panel (if separate)
+  - host: admin.austacare.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: austa-frontend-admin
+            port:
+              number: 80
+---
+# Certificate Issuer
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: devops@austacare.com
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+---
+# Network Policy for Ingress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-services
+  namespace: austa-care
+spec:
+  podSelector:
+    matchLabels:
+      app: austa-backend
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 3000

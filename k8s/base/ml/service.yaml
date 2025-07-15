@@ -1,0 +1,28 @@
+# ML Inference Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: austa-ml-inference
+  namespace: austa-care
+  labels:
+    app: austa-ml
+    component: inference
+spec:
+  type: ClusterIP
+  selector:
+    app: austa-ml
+    component: inference
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  - name: grpc
+    port: 50051
+    targetPort: grpc
+    protocol: TCP
+  - name: metrics
+    port: 9092
+    targetPort: metrics
+    protocol: TCP
+  sessionAffinity: None

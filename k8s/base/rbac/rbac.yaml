@@ -1,0 +1,100 @@
+# RBAC Configuration
+# ClusterRole for backend services
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: austa-backend-role
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list"]
+---
+# ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: austa-backend-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: austa-backend-role
+subjects:
+- kind: ServiceAccount
+  name: austa-backend
+  namespace: austa-care
+---
+# Role for ML service to access model storage
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: austa-ml-role
+  namespace: austa-care
+rules:
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get", "list", "create", "update", "patch"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list"]
+---
+# RoleBinding for ML service
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: austa-ml-binding
+  namespace: austa-care
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: austa-ml-role
+subjects:
+- kind: ServiceAccount
+  name: austa-ml
+  namespace: austa-care
+---
+# Role for External Secrets Operator
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: external-secrets-operator
+  namespace: austa-care
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["create", "update", "patch", "delete", "get", "list", "watch"]
+- apiGroups: ["external-secrets.io"]
+  resources: ["externalsecrets", "secretstores"]
+  verbs: ["get", "list", "watch"]
+---
+# ServiceAccount for External Secrets
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: external-secrets-operator
+  namespace: austa-care
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/external-secrets-operator
+---
+# RoleBinding for External Secrets
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: external-secrets-operator-binding
+  namespace: austa-care
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: external-secrets-operator
+subjects:
+- kind: ServiceAccount
+  name: external-secrets-operator
+  namespace: austa-care

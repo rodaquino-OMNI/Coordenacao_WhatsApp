@@ -1,0 +1,165 @@
+name: TypeScript Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  typescript-validation:
+    name: TypeScript Type Safety Validation
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run TypeScript compiler check
+      run: |
+        echo "🔍 Running TypeScript compiler..."
+        npx tsc --noEmit
+    
+    - name: Run strict mode check
+      run: |
+        echo "🔒 Running TypeScript strict mode..."
+        npx tsc --noEmit --strict || echo "⚠️ Strict mode has warnings"
+    
+    - name: Check type coverage
+      run: |
+        echo "📊 Checking type coverage..."
+        npx type-coverage --detail --min-coverage 95 || echo "⚠️ Type coverage below 95%"
+    
+    - name: Run custom validation script
+      run: |
+        echo "🧪 Running comprehensive validation..."
+        chmod +x ./scripts/validate-typescript.sh
+        ./scripts/validate-typescript.sh
+    
+    - name: Run TypeScript validation tests
+      run: |
+        echo "🧪 Running TypeScript validation test suite..."
+        npm test -- tests/typescript-validation/
+    
+    - name: Generate error report
+      if: failure()
+      run: |
+        echo "📝 Generating TypeScript error report..."
+        npx tsc --noEmit > typescript-errors-ci.txt 2>&1 || true
+        echo "Error summary:"
+        grep "error TS" typescript-errors-ci.txt | sed -E 's/.*error (TS[0-9]+).*/\1/' | sort | uniq -c | sort -nr || true
+    
+    - name: Upload error report
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: typescript-errors
+        path: typescript-errors-ci.txt
+
+  quality-gates:
+    name: Quality Gates Check
+    needs: typescript-validation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18.x
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Check no new TypeScript errors
+      run: |
+        echo "🚫 Checking for new TypeScript errors..."
+        ERROR_COUNT=$(npx tsc --noEmit 2>&1 | grep -c "error TS" || echo "0")
+        echo "Found $ERROR_COUNT TypeScript errors"
+        if [ "$ERROR_COUNT" -gt "0" ]; then
+          echo "❌ Quality gate failed: TypeScript errors found"
+          exit 1
+        fi
+        echo "✅ Quality gate passed: No TypeScript errors"
+    
+    - name: Performance impact check
+      run: |
+        echo "⚡ Checking build performance..."
+        START_TIME=$(date +%s)
+        npx tsc --noEmit
+        END_TIME=$(date +%s)
+        BUILD_TIME=$((END_TIME - START_TIME))
+        echo "Build completed in ${BUILD_TIME} seconds"
+        if [ "$BUILD_TIME" -gt "60" ]; then
+          echo "⚠️ Build time exceeds 60 seconds"
+        fi
+
+  type-regression-check:
+    name: Type Regression Prevention
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout PR branch
+      uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18.x
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Count TypeScript errors in PR
+      run: |
+        PR_ERRORS=$(npx tsc --noEmit 2>&1 | grep -c "error TS" || echo "0")
+        echo "PR_ERROR_COUNT=$PR_ERRORS" >> $GITHUB_ENV
+        echo "PR has $PR_ERRORS TypeScript errors"
+    
+    - name: Checkout base branch
+      run: |
+        git fetch origin ${{ github.base_ref }}
+        git checkout origin/${{ github.base_ref }}
+    
+    - name: Install base dependencies
+      run: npm ci
+    
+    - name: Count TypeScript errors in base
+      run: |
+        BASE_ERRORS=$(npx tsc --noEmit 2>&1 | grep -c "error TS" || echo "0")
+        echo "BASE_ERROR_COUNT=$BASE_ERRORS" >> $GITHUB_ENV
+        echo "Base has $BASE_ERRORS TypeScript errors"
+    
+    - name: Compare error counts
+      run: |
+        echo "📊 TypeScript Error Comparison:"
+        echo "Base branch: $BASE_ERROR_COUNT errors"
+        echo "PR branch: $PR_ERROR_COUNT errors"
+        
+        if [ "$PR_ERROR_COUNT" -gt "$BASE_ERROR_COUNT" ]; then
+          echo "❌ PR introduces new TypeScript errors!"
+          echo "Please fix the new errors before merging."
+          exit 1
+        elif [ "$PR_ERROR_COUNT" -lt "$BASE_ERROR_COUNT" ]; then
+          echo "✅ PR reduces TypeScript errors by $((BASE_ERROR_COUNT - PR_ERROR_COUNT))!"
+        else
+          echo "✅ PR maintains same error count"
+        fi

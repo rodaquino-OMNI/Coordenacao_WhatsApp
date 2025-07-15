@@ -1,0 +1,103 @@
+# Base Kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: austa-care
+
+resources:
+# Namespace
+- namespace/namespace.yaml
+
+# Backend API
+- backend/deployment.yaml
+- backend/service.yaml
+- backend/hpa.yaml
+- backend/configmap.yaml
+
+# Frontend PWA
+- frontend/deployment.yaml
+- frontend/service.yaml
+
+# WhatsApp Webhook
+- whatsapp/deployment.yaml
+- whatsapp/service.yaml
+
+# ML Inference
+- ml/deployment.yaml
+- ml/service.yaml
+
+# Database & Cache
+- database/external-service.yaml
+- database/secrets.yaml
+
+# Ingress
+- ingress/ingress.yaml
+
+# Istio Service Mesh
+- istio/gateway.yaml
+
+# Monitoring
+- monitoring/servicemonitor.yaml
+
+# RBAC
+- rbac/rbac.yaml
+
+# Security
+- security/podsecurity.yaml
+
+# Common labels applied to all resources
+commonLabels:
+  project: austa-care
+  managed-by: kustomize
+
+# Common annotations
+commonAnnotations:
+  version: "1.0.0"
+
+# Config map generator for environment-specific configs
+configMapGenerator:
+- name: austa-frontend-config
+  literals:
+  - whatsapp-widget-id=default-widget-id
+- name: austa-ml-config
+  literals:
+  - s3-model-bucket=austa-ml-models
+- name: austa-frontend-nginx-config
+  files:
+  - nginx.conf=backend/configmap.yaml
+
+# Secret generator (will be overridden in overlays)
+secretGenerator:
+- name: austa-auth-secret
+  literals:
+  - jwt-secret=change-me-in-overlay
+- name: austa-whatsapp-secret
+  literals:
+  - api-key=change-me-in-overlay
+  - verify-token=change-me-in-overlay
+  - access-token=change-me-in-overlay
+  - phone-number-id=change-me-in-overlay
+
+# Image configuration
+images:
+- name: austa-care/backend
+  newTag: latest
+- name: austa-care/frontend
+  newTag: latest
+- name: austa-care/whatsapp-webhook
+  newTag: latest
+- name: austa-care/ml-inference
+  newTag: latest
+- name: austa-care/model-downloader
+  newTag: latest
+
+# Replica counts (can be overridden in overlays)
+replicas:
+- name: austa-backend-api
+  count: 3
+- name: austa-frontend-pwa
+  count: 3
+- name: austa-whatsapp-webhook
+  count: 2
+- name: austa-ml-inference
+  count: 2

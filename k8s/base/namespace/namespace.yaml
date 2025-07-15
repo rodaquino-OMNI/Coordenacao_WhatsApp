@@ -1,0 +1,45 @@
+# Namespace for AUSTA Care Platform
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: austa-care
+  labels:
+    name: austa-care
+    istio-injection: enabled
+    environment: base
+  annotations:
+    purpose: "Healthcare coordination platform"
+---
+# Resource Quota for namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: austa-care-quota
+  namespace: austa-care
+spec:
+  hard:
+    requests.cpu: "100"
+    requests.memory: "200Gi"
+    limits.cpu: "200"
+    limits.memory: "400Gi"
+    persistentvolumeclaims: "10"
+    services.loadbalancers: "2"
+---
+# Limit Range for namespace
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: austa-care-limits
+  namespace: austa-care
+spec:
+  limits:
+  - default:
+      cpu: "1"
+      memory: "2Gi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "128Mi"
+    type: Container
+  - max:
+      storage: "10Gi"
+    type: PersistentVolumeClaim

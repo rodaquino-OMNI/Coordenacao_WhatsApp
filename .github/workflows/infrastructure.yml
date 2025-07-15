@@ -1,0 +1,390 @@
+name: Infrastructure Deployment Pipeline
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'infrastructure/**'
+      - '.github/workflows/infrastructure.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'infrastructure/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      action:
+        description: 'Terraform action'
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+
+env:
+  TF_VERSION: '1.6.0'
+  TERRAFORM_DIR: './infrastructure/terraform'
+  TF_IN_AUTOMATION: true
+
+jobs:
+  # Job 1: Terraform Validation
+  terraform-validate:
+    name: Terraform Validation
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [development, staging, production]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Terraform Format Check
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          terraform fmt -check -recursive
+          if [ $? -ne 0 ]; then
+            echo "Terraform files need formatting. Run 'terraform fmt -recursive'"
+            exit 1
+          fi
+
+      - name: Terraform Init
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          terraform init -backend-config="key=${{ matrix.environment }}/terraform.tfstate" \
+            -backend-config="bucket=austa-care-terraform-state" \
+            -backend-config="region=us-east-1" \
+            -backend-config="dynamodb_table=austa-care-terraform-locks"
+
+      - name: Terraform Validate
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: terraform validate
+
+      - name: TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: latest
+
+      - name: Run TFLint
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          tflint --init
+          tflint --format=default
+
+  # Job 2: Cost Estimation
+  cost-estimation:
+    name: Infrastructure Cost Estimation
+    runs-on: ubuntu-latest
+    needs: terraform-validate
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v2
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Generate Infracost JSON
+        run: |
+          infracost breakdown --path=${{ env.TERRAFORM_DIR }} \
+            --format=json \
+            --out-file=/tmp/infracost.json
+
+      - name: Post Infracost comment
+        uses: infracost/actions/comment@v1
+        with:
+          path: /tmp/infracost.json
+          behavior: update
+
+  # Job 3: Terraform Plan
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    needs: terraform-validate
+    strategy:
+      matrix:
+        environment: [development, staging, production]
+    environment:
+      name: ${{ matrix.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Terraform Init
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          terraform init -backend-config="key=${{ matrix.environment }}/terraform.tfstate" \
+            -backend-config="bucket=austa-care-terraform-state" \
+            -backend-config="region=us-east-1" \
+            -backend-config="dynamodb_table=austa-care-terraform-locks"
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          terraform plan -var-file="environments/${{ matrix.environment }}.tfvars" \
+            -out=tfplan-${{ matrix.environment }} \
+            -detailed-exitcode || echo "exitcode=$?" >> $GITHUB_OUTPUT
+
+      - name: Upload Plan
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfplan-${{ matrix.environment }}
+          path: ${{ env.TERRAFORM_DIR }}/tfplan-${{ matrix.environment }}
+
+      - name: Comment PR with Plan
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const output = `#### Terraform Plan for ${{ matrix.environment }} 📖
+            
+            <details><summary>Show Plan</summary>
+            
+            \`\`\`hcl
+            ${{ steps.plan.outputs.stdout }}
+            \`\`\`
+            
+            </details>
+            
+            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
+
+  # Job 4: Manual Approval Gate
+  approval-gate:
+    name: Deployment Approval
+    runs-on: ubuntu-latest
+    needs: terraform-plan
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: production-approval
+    steps:
+      - name: Request approval
+        run: |
+          echo "Waiting for manual approval to proceed with infrastructure deployment..."
+
+  # Job 5: Terraform Apply
+  terraform-apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    needs: approval-gate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    strategy:
+      matrix:
+        environment: [development, staging, production]
+      max-parallel: 1
+    environment:
+      name: ${{ matrix.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Download Plan
+        uses: actions/download-artifact@v3
+        with:
+          name: tfplan-${{ matrix.environment }}
+          path: ${{ env.TERRAFORM_DIR }}
+
+      - name: Terraform Init
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          terraform init -backend-config="key=${{ matrix.environment }}/terraform.tfstate" \
+            -backend-config="bucket=austa-care-terraform-state" \
+            -backend-config="region=us-east-1" \
+            -backend-config="dynamodb_table=austa-care-terraform-locks"
+
+      - name: Create backup
+        run: |
+          # Backup current state before applying changes
+          aws s3 cp s3://austa-care-terraform-state/${{ matrix.environment }}/terraform.tfstate \
+            s3://austa-care-terraform-state/backups/${{ matrix.environment }}/terraform.tfstate.$(date +%Y%m%d%H%M%S)
+
+      - name: Terraform Apply
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          terraform apply tfplan-${{ matrix.environment }}
+
+      - name: Capture outputs
+        id: outputs
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          echo "eks_cluster_endpoint=$(terraform output -raw eks_cluster_endpoint)" >> $GITHUB_OUTPUT
+          echo "rds_endpoint=$(terraform output -raw rds_endpoint)" >> $GITHUB_OUTPUT
+          echo "redis_endpoint=$(terraform output -raw redis_endpoint)" >> $GITHUB_OUTPUT
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name austa-care-${{ matrix.environment }} --region us-east-1
+
+      - name: Deploy core Kubernetes resources
+        run: |
+          # Apply namespace configurations
+          kubectl apply -f infrastructure/kubernetes/namespaces/
+          
+          # Install metrics server
+          kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+          
+          # Install ingress controller
+          helm upgrade --install ingress-nginx ingress-nginx \
+            --repo https://kubernetes.github.io/ingress-nginx \
+            --namespace ingress-nginx --create-namespace \
+            --set controller.service.type=LoadBalancer
+
+      - name: Install ArgoCD
+        if: matrix.environment != 'development'
+        run: |
+          kubectl create namespace argocd || true
+          kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+          
+          # Wait for ArgoCD to be ready
+          kubectl wait --for=condition=available --timeout=600s deployment/argocd-server -n argocd
+
+      - name: Configure monitoring
+        run: |
+          # Install Prometheus Operator
+          helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
+            --namespace monitoring --create-namespace \
+            --values infrastructure/helm/monitoring/prometheus-values.yaml
+          
+          # Install Loki for log aggregation
+          helm upgrade --install loki grafana/loki-stack \
+            --namespace monitoring \
+            --values infrastructure/helm/monitoring/loki-values.yaml
+
+  # Job 6: Post-Deployment Validation
+  validate-deployment:
+    name: Validate Infrastructure
+    runs-on: ubuntu-latest
+    needs: terraform-apply
+    strategy:
+      matrix:
+        environment: [development, staging, production]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name austa-care-${{ matrix.environment }} --region us-east-1
+
+      - name: Validate EKS cluster
+        run: |
+          # Check cluster nodes
+          kubectl get nodes
+          
+          # Check system pods
+          kubectl get pods -n kube-system
+          
+          # Validate cluster autoscaler
+          kubectl get deployment cluster-autoscaler -n kube-system
+
+      - name: Validate RDS
+        run: |
+          # Test RDS connectivity
+          aws rds describe-db-instances --db-instance-identifier austa-care-${{ matrix.environment }}
+
+      - name: Validate networking
+        run: |
+          # Check VPC endpoints
+          aws ec2 describe-vpc-endpoints --filters Name=vpc-id,Values=$(aws ec2 describe-vpcs --filters Name=tag:Name,Values=austa-care-${{ matrix.environment }} --query 'Vpcs[0].VpcId' --output text)
+          
+          # Validate security groups
+          aws ec2 describe-security-groups --filters Name=tag:Environment,Values=${{ matrix.environment }}
+
+      - name: Run infrastructure tests
+        run: |
+          # Run Terratest or similar infrastructure tests
+          cd infrastructure/tests
+          go test -v -timeout 30m
+
+  # Job 7: Disaster Recovery Test
+  dr-test:
+    name: Disaster Recovery Test
+    runs-on: ubuntu-latest
+    needs: validate-deployment
+    if: github.event.schedule == '0 2 * * 0'  # Weekly on Sunday at 2 AM
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Test RDS backup restoration
+        run: |
+          # Create test RDS instance from snapshot
+          ./scripts/dr/test-rds-restore.sh
+
+      - name: Test cross-region failover
+        run: |
+          # Simulate region failure and test failover
+          ./scripts/dr/test-region-failover.sh
+
+      - name: Generate DR report
+        run: |
+          # Generate disaster recovery test report
+          ./scripts/dr/generate-dr-report.sh
+
+      - name: Upload DR report
+        uses: actions/upload-artifact@v3
+        with:
+          name: dr-test-report
+          path: dr-report/

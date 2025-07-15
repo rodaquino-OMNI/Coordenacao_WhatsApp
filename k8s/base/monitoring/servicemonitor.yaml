@@ -1,0 +1,139 @@
+# ServiceMonitor for Prometheus Operator
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: austa-backend-metrics
+  namespace: austa-care
+  labels:
+    app: austa-backend
+    prometheus: kube-prometheus
+spec:
+  selector:
+    matchLabels:
+      app: austa-backend
+      component: api
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    scheme: http
+    scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: austa-whatsapp-metrics
+  namespace: austa-care
+  labels:
+    app: austa-whatsapp
+    prometheus: kube-prometheus
+spec:
+  selector:
+    matchLabels:
+      app: austa-whatsapp
+      component: webhook
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: austa-ml-metrics
+  namespace: austa-care
+  labels:
+    app: austa-ml
+    prometheus: kube-prometheus
+spec:
+  selector:
+    matchLabels:
+      app: austa-ml
+      component: inference
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+---
+# PrometheusRule for Alerts
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: austa-care-alerts
+  namespace: austa-care
+  labels:
+    prometheus: kube-prometheus
+    role: alert-rules
+spec:
+  groups:
+  - name: austa-care.rules
+    interval: 30s
+    rules:
+    # High Error Rate Alert
+    - alert: HighErrorRate
+      expr: |
+        sum(rate(http_requests_total{status=~"5.."}[5m])) by (job)
+        /
+        sum(rate(http_requests_total[5m])) by (job)
+        > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        team: backend
+      annotations:
+        summary: "High error rate detected"
+        description: "Error rate is above 5% for {{ $labels.job }}"
+    
+    # Pod Memory Usage Alert
+    - alert: PodMemoryUsage
+      expr: |
+        container_memory_working_set_bytes{namespace="austa-care", container!=""}
+        / container_spec_memory_limit_bytes{namespace="austa-care", container!=""}
+        > 0.9
+      for: 5m
+      labels:
+        severity: warning
+        team: platform
+      annotations:
+        summary: "High memory usage"
+        description: "Pod {{ $labels.pod }} memory usage is above 90%"
+    
+    # API Response Time Alert
+    - alert: SlowAPIResponse
+      expr: |
+        histogram_quantile(0.95,
+          sum(rate(http_request_duration_seconds_bucket{namespace="austa-care"}[5m])) by (le, job)
+        ) > 1
+      for: 5m
+      labels:
+        severity: warning
+        team: backend
+      annotations:
+        summary: "Slow API response times"
+        description: "95th percentile response time is above 1s for {{ $labels.job }}"
+    
+    # WhatsApp Webhook Failures
+    - alert: WhatsAppWebhookFailures
+      expr: |
+        sum(rate(whatsapp_webhook_failures_total[5m])) > 1
+      for: 5m
+      labels:
+        severity: critical
+        team: backend
+      annotations:
+        summary: "WhatsApp webhook failures detected"
+        description: "WhatsApp webhook is failing at {{ $value }} requests per second"
+    
+    # ML Model Inference Latency
+    - alert: MLInferenceLatency
+      expr: |
+        histogram_quantile(0.99,
+          sum(rate(ml_inference_duration_seconds_bucket[5m])) by (le, model)
+        ) > 5
+      for: 5m
+      labels:
+        severity: warning
+        team: ml
+      annotations:
+        summary: "High ML inference latency"
+        description: "99th percentile inference time for model {{ $labels.model }} is above 5s"

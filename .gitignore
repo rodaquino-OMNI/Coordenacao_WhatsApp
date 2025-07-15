@@ -1,0 +1,399 @@
+# ==========================================
+# AUSTA Care Coordination Platform
+# .gitignore - Comprehensive ignore patterns
+# ==========================================
+
+# Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+.env.local
+.env.production
+.env.staging
+.env.development
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+
+# API Keys and Credentials
+**/secrets/
+**/credentials/
+service-account-*.json
+firebase-*.json
+google-credentials.json
+aws-credentials
+.aws/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.npm
+.yarn/
+.pnp.*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+*.egg-info/
+.eggs/
+*.egg
+MANIFEST
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+Pipfile.lock
+poetry.lock
+
+# Java/Spring Boot
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+gradle-app.setting
+.gradletasknamecache
+
+# IDE & Editors
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+*.sublime-project
+.atom/
+.history/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Logs
+logs/
+*.log
+logs.txt
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+log/
+*.log.*
+*.log-*
+
+# Build outputs
+dist/
+dist-ssr/
+build/
+out/
+.next/
+.nuxt/
+.cache/
+.parcel-cache/
+.turbo/
+.vercel
+.output
+.vite/
+_site/
+public/build/
+*.tsbuildinfo
+
+# Testing
+coverage/
+.nyc_output/
+test-results/
+jest-results/
+cypress/videos/
+cypress/screenshots/
+playwright-report/
+test-report/
+allure-results/
+allure-report/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-shm
+*.db-wal
+postgres-data/
+mysql-data/
+mongodb-data/
+redis-data/
+
+# Docker
+docker-compose.override.yml
+.docker/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+*.tfvars
+!*.tfvars.example
+.terraformrc
+terraform.rc
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Kubernetes
+kubeconfig
+*.kubeconfig
+helm-values-*.yaml
+!helm-values-example.yaml
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+*.rej
+.tmp/
+tmp/
+temp/
+
+# WhatsApp Media Downloads
+downloads/
+media/
+whatsapp-media/
+voice-messages/
+documents/
+
+# ML Model files (large binaries)
+*.h5
+*.pkl
+*.joblib
+*.model
+*.onnx
+*.pt
+*.pth
+models/weights/
+!models/weights/.gitkeep
+
+# Health Data (LGPD/HIPAA compliance)
+patient-data/
+health-records/
+phi/
+pii/
+confidential/
+sensitive-data/
+*.dicom
+*.hl7
+
+# Backup files
+backups/
+*.backup
+*.dump
+*.sql.gz
+*.tar.gz
+*.zip
+!lambda-functions/*.zip
+
+# Generated documentation
+docs/api/generated/
+docs/.vitepress/dist/
+api-docs/
+swagger-ui-dist/
+
+# Performance test results
+performance-results/
+load-test-results/
+gatling-results/
+jmeter-results/
+
+# Cache directories
+.cache/
+.sass-cache/
+.eslintcache
+.stylelintcache
+.prettiercache
+
+# Package manager directories
+.pnpm-store/
+jspm_packages/
+bower_components/
+
+# Monitoring & APM
+newrelic_agent.log
+.newrelic/
+datadog/
+elastic-apm/
+
+# Security scanning results
+security-scan-results/
+vulnerability-reports/
+trivy-results.json
+.scannerwork/
+
+# Local development
+.env.development.local
+.env.test.local
+.env.production.local
+local-data/
+mock-data/
+!mock-data/examples/
+
+# CI/CD artifacts
+.github/actions/*/dist/
+artifacts/
+reports/
+
+# Serverless
+.serverless/
+.architect
+.sls/
+
+# Generated files
+generated/
+gen/
+auto-generated/
+codegen/
+
+# Miscellaneous
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+.vercel
+.vscode-test/
+*.vsix
+
+# Project specific ignores
+/backend-node/uploads/
+/dashboard-react/build/
+/services-python/models/trained/
+/whatsapp-connector/sessions/
+/data-lake/
+/exports/
+/imports/
+/analytics-reports/
+
+# Keep these files
+!.gitkeep
+!.dockerignore
+!.editorconfig
+!.prettierrc
+!.eslintrc.js
+!.github/
+!.gitlab-ci.yml
+!Dockerfile
+!docker-compose.yml
+!docker-compose.*.yml
+
+
+# Claude Flow generated files
+.claude/settings.local.json
+.claude/mcp.json
+.swarm/
+.hive-mind/
+memory/claude-flow-data.json
+memory/sessions/*
+!memory/sessions/README.md
+memory/agents/*
+!memory/agents/README.md
+coordination/memory_bank/*
+coordination/subtasks/*
+coordination/orchestration/*
+*.db
+*.db-journal
+*.db-wal
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+claude-flow
+claude-flow.bat
+claude-flow.ps1
+hive-mind-prompt-*.txt
+
+# Additional TypeScript error logs
+typescript-errors.log
+typescript-full-errors.log
+
+# Claude Flow Swarm files
+.ruv-swarm/

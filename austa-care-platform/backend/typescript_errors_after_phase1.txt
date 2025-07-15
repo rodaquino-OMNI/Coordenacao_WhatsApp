@@ -1,0 +1,6 @@
+error TS6059: File '/Users/rodrigo/claude-projects/Coordenacao_WhatsApp/austa-care-platform/backend/tests/setup.ts' is not under 'rootDir' '/Users/rodrigo/claude-projects/Coordenacao_WhatsApp/austa-care-platform/backend/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Matched by include pattern 'tests/**/*' in '/Users/rodrigo/claude-projects/Coordenacao_WhatsApp/austa-care-platform/backend/tsconfig.json'
+error TS6059: File '/Users/rodrigo/claude-projects/Coordenacao_WhatsApp/austa-care-platform/backend/tests/utils/test-helpers.ts' is not under 'rootDir' '/Users/rodrigo/claude-projects/Coordenacao_WhatsApp/austa-care-platform/backend/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Matched by include pattern 'tests/**/*' in '/Users/rodrigo/claude-projects/Coordenacao_WhatsApp/austa-care-platform/backend/tsconfig.json'

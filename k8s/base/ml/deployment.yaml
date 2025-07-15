@@ -1,0 +1,185 @@
+# ML Inference Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: austa-ml-inference
+  namespace: austa-care
+  labels:
+    app: austa-ml
+    component: inference
+    version: v1
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: austa-ml
+      component: inference
+  template:
+    metadata:
+      labels:
+        app: austa-ml
+        component: inference
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: austa-ml
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10003
+        fsGroup: 10003
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: node.kubernetes.io/instance-type
+                operator: In
+                values:
+                - p3.2xlarge
+                - p3.8xlarge
+                - g4dn.xlarge
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - austa-ml
+              topologyKey: kubernetes.io/hostname
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: inference
+        image: austa-care/ml-inference:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        - name: grpc
+          containerPort: 50051
+          protocol: TCP
+        - name: metrics
+          containerPort: 9092
+          protocol: TCP
+        env:
+        - name: PYTHON_ENV
+          value: "production"
+        - name: MODEL_PATH
+          value: "/models"
+        - name: BACKEND_API_URL
+          value: "http://austa-backend-api.austa-care.svc.cluster.local"
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: austa-redis-secret
+              key: connection-string
+        - name: AWS_REGION
+          value: "us-east-1"
+        - name: S3_MODEL_BUCKET
+          valueFrom:
+            configMapKeyRef:
+              name: austa-ml-config
+              key: s3-model-bucket
+        resources:
+          requests:
+            cpu: 1000m
+            memory: 4Gi
+            nvidia.com/gpu: 1
+          limits:
+            cpu: 4000m
+            memory: 16Gi
+            nvidia.com/gpu: 1
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: http
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health/startup
+            port: http
+          initialDelaySeconds: 0
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
+        volumeMounts:
+        - name: models
+          mountPath: /models
+        - name: cache
+          mountPath: /tmp/.cache
+        - name: tmp
+          mountPath: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      initContainers:
+      - name: model-downloader
+        image: austa-care/model-downloader:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          echo "Downloading ML models from S3..."
+          aws s3 sync s3://${S3_MODEL_BUCKET}/models /models --no-progress
+          echo "Models downloaded successfully"
+        env:
+        - name: S3_MODEL_BUCKET
+          valueFrom:
+            configMapKeyRef:
+              name: austa-ml-config
+              key: s3-model-bucket
+        volumeMounts:
+        - name: models
+          mountPath: /models
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+      volumes:
+      - name: models
+        emptyDir:
+          sizeLimit: 10Gi
+      - name: cache
+        emptyDir:
+          sizeLimit: 5Gi
+      - name: tmp
+        emptyDir: {}
+---
+# Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: austa-ml
+  namespace: austa-care
+  labels:
+    app: austa-ml
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/austa-ml-s3-access

@@ -1,0 +1,416 @@
+src/config/config.ts(1,20): error TS2307: Cannot find module 'dotenv' or its corresponding type declarations.
+src/config/config.ts(2,19): error TS2307: Cannot find module 'zod' or its corresponding type declarations.
+src/config/config.ts(76,29): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/controllers/advanced-risk-controller.ts(16,3): error TS2305: Module '"../types/risk.types"' has no exported member 'CompoundRiskAnalysis'.
+src/controllers/advanced-risk-controller.ts(369,7): error TS2322: Type 'import("src/types/questionnaire.types").QuestionnaireResponse[]' is not assignable to type 'import("src/types/risk.types").QuestionnaireResponse[]'.
+  Type 'QuestionnaireResponse' is missing the following properties from type 'QuestionnaireResponse': questionId, question, answer, type, and 2 more.
+src/controllers/advanced-risk-controller.ts(395,42): error TS2339: Property 'answer' does not exist on type 'QuestionnaireResponse'.
+src/controllers/advanced-risk-controller.ts(404,40): error TS2339: Property 'medicalRelevance' does not exist on type 'QuestionnaireResponse'.
+src/controllers/advanced-risk-controller.ts(429,42): error TS2339: Property 'answer' does not exist on type 'QuestionnaireResponse'.
+src/controllers/advanced-risk-controller.ts(435,29): error TS2339: Property 'answer' does not exist on type 'QuestionnaireResponse'.
+src/controllers/advanced-risk-controller.ts(437,41): error TS2339: Property 'medicalRelevance' does not exist on type 'QuestionnaireResponse'.
+src/controllers/advanced-risk-controller.ts(474,42): error TS2339: Property 'answer' does not exist on type 'QuestionnaireResponse'.
+src/controllers/advanced-risk-controller.ts(494,18): error TS2339: Property 'type' does not exist on type 'QuestionnaireResponse'.
+src/controllers/advanced-risk-controller.ts(495,37): error TS2339: Property 'answer' does not exist on type 'QuestionnaireResponse'.
+src/controllers/advanced-risk-controller.ts(507,40): error TS2339: Property 'answer' does not exist on type 'QuestionnaireResponse'.
+src/controllers/aiController.ts(113,11): error TS2339: Property 'writeHead' does not exist on type 'Response<any, Record<string, any>>'.
+src/controllers/aiController.ts(123,11): error TS2339: Property 'write' does not exist on type 'Response<any, Record<string, any>>'.
+src/controllers/aiController.ts(132,15): error TS2339: Property 'write' does not exist on type 'Response<any, Record<string, any>>'.
+src/controllers/aiController.ts(137,11): error TS2339: Property 'write' does not exist on type 'Response<any, Record<string, any>>'.
+src/controllers/aiController.ts(138,11): error TS2551: Property 'end' does not exist on type 'Response<any, Record<string, any>>'. Did you mean 'send'?
+src/controllers/aiController.ts(142,11): error TS2339: Property 'write' does not exist on type 'Response<any, Record<string, any>>'.
+src/controllers/aiController.ts(143,11): error TS2551: Property 'end' does not exist on type 'Response<any, Record<string, any>>'. Did you mean 'send'?
+src/controllers/auth.ts(2,24): error TS2307: Cannot find module '@/utils/logger' or its corresponding type declarations.
+src/controllers/authorizationController.ts(56,31): error TS2339: Property 'on' does not exist on type 'WorkflowOrchestrator'.
+src/controllers/authorizationController.ts(57,31): error TS2339: Property 'on' does not exist on type 'WorkflowOrchestrator'.
+src/controllers/authorizationController.ts(60,24): error TS2339: Property 'on' does not exist on type 'BusinessRulesEngine'.
+src/controllers/authorizationController.ts(63,31): error TS2339: Property 'on' does not exist on type 'DocumentIntelligenceService'.
+src/controllers/authorizationController.ts(66,26): error TS2339: Property 'on' does not exist on type 'TasyIntegrationService'.
+src/controllers/authorizationController.ts(69,30): error TS2339: Property 'on' does not exist on type 'NotificationService'.
+src/controllers/authorizationController.ts(72,23): error TS2339: Property 'on' does not exist on type 'AuditService'.
+src/controllers/authorizationController.ts(301,18): error TS2339: Property 'validationNotes' does not exist on type '{ id: string; type: DocumentType; fileName: string; filePath: string; mimeType: string; fileSize: number; uploadedAt: Date; uploadedBy: string; isValid: boolean; ocrData: {}; }'.
+src/controllers/authorizationController.ts(313,11): error TS2322: Type '"document_uploaded"' is not assignable to type 'WorkflowAction'.
+src/controllers/health.ts(2,24): error TS2307: Cannot find module '@/utils/logger' or its corresponding type declarations.
+src/controllers/health.ts(12,15): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/controllers/health.ts(13,20): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/controllers/health.ts(14,16): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/controllers/health.ts(16,26): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/controllers/health.ts(17,27): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/controllers/health.ts(18,30): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/controllers/health.ts(59,15): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/controllers/health.ts(60,20): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/controllers/health.ts(61,16): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/controllers/health.ts(109,13): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/controllers/ocr.controller.ts(29,8): error TS1259: Module '"/Users/rodrigo/claude-projects/Coordenacao_WhatsApp/austa-care-platform/backend/node_modules/@types/multer/index"' can only be default-imported using the 'esModuleInterop' flag
+src/controllers/user.ts(2,24): error TS2307: Cannot find module '@/utils/logger' or its corresponding type declarations.
+src/controllers/whatsapp.ts(2,24): error TS2307: Cannot find module '@/utils/logger' or its corresponding type declarations.
+src/controllers/whatsapp.ts(3,33): error TS2307: Cannot find module '@/services/whatsapp.service' or its corresponding type declarations.
+src/controllers/whatsapp.ts(4,34): error TS2307: Cannot find module '@/services/webhook-processor.service' or its corresponding type declarations.
+src/controllers/whatsapp.ts(11,8): error TS2307: Cannot find module '@/utils/webhook' or its corresponding type declarations.
+src/controllers/whatsapp.ts(18,8): error TS2307: Cannot find module '@/types/whatsapp' or its corresponding type declarations.
+src/controllers/whatsapp.ts(74,37): error TS2339: Property 'connection' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+src/controllers/whatsapp.ts(114,37): error TS2339: Property 'connection' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+src/controllers/whatsapp.ts(115,27): error TS2551: Property 'headers' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'. Did you mean 'header'?
+src/controllers/whatsapp.ts(115,65): error TS2551: Property 'headers' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'. Did you mean 'header'?
+src/controllers/whatsapp.ts(171,5): error TS2304: Cannot find name 'setImmediate'.
+src/infrastructure/fhir/fhir.gateway.ts(1,38): error TS2307: Cannot find module 'axios' or its corresponding type declarations.
+src/infrastructure/fhir/fhir.gateway.ts(192,27): error TS2339: Property 'fhir' does not exist on type '{ readonly nodeEnv: any; readonly port: any; readonly database: { readonly url: any; }; readonly redis: { readonly url: any; readonly cluster: { readonly enabled: any; readonly nodes: any; }; }; ... 11 more ...; readonly healthCheck: { ...; }; }'.
+src/infrastructure/fhir/fhir.gateway.ts(268,19): error TS2339: Property 'fhir' does not exist on type '{ readonly nodeEnv: any; readonly port: any; readonly database: { readonly url: any; }; readonly redis: { readonly url: any; readonly cluster: { readonly enabled: any; readonly nodes: any; }; }; ... 11 more ...; readonly healthCheck: { ...; }; }'.
+src/infrastructure/kafka/events/event.schemas.ts(1,19): error TS2307: Cannot find module 'zod' or its corresponding type declarations.
+src/infrastructure/kafka/kafka.client.ts(1,60): error TS2307: Cannot find module 'kafkajs' or its corresponding type declarations.
+src/infrastructure/kafka/kafka.client.ts(165,39): error TS2802: Type 'Map<string, Consumer>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/infrastructure/ml/ml-pipeline.service.ts(1,21): error TS2307: Cannot find module '@tensorflow/tfjs-node' or its corresponding type declarations.
+src/infrastructure/ml/ml-pipeline.service.ts(6,24): error TS2307: Cannot find module '@langchain/openai' or its corresponding type declarations.
+src/infrastructure/ml/ml-pipeline.service.ts(7,28): error TS2307: Cannot find module '@langchain/openai' or its corresponding type declarations.
+src/infrastructure/ml/ml-pipeline.service.ts(8,45): error TS2307: Cannot find module '@langchain/core/messages' or its corresponding type declarations.
+src/infrastructure/ml/ml-pipeline.service.ts(492,36): error TS2802: Type 'Map<string, any>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/infrastructure/mongodb/mongodb.client.ts(1,79): error TS2307: Cannot find module 'mongodb' or its corresponding type declarations.
+src/infrastructure/mongodb/mongodb.client.ts(55,30): error TS2339: Property 'options' does not exist on type '{ readonly uri: any; readonly database: any; }'.
+src/infrastructure/monitoring/prometheus.metrics.ts(1,62): error TS2307: Cannot find module 'prom-client' or its corresponding type declarations.
+src/infrastructure/monitoring/prometheus.metrics.ts(365,21): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/infrastructure/monitoring/prometheus.metrics.ts(367,19): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/infrastructure/monitoring/prometheus.metrics.ts(377,24): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/infrastructure/monitoring/prometheus.metrics.ts(385,24): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/infrastructure/monitoring/prometheus.metrics.ts(387,31): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/infrastructure/monitoring/prometheus.metrics.ts(395,22): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/infrastructure/redis/redis.cluster.ts(68,35): error TS2339: Property 'password' does not exist on type '{ readonly url: any; readonly cluster: { readonly enabled: any; readonly nodes: any; }; }'.
+src/infrastructure/redis/redis.cluster.ts(69,30): error TS2339: Property 'tls' does not exist on type '{ readonly url: any; readonly cluster: { readonly enabled: any; readonly nodes: any; }; }'.
+src/infrastructure/redis/redis.cluster.ts(89,27): error TS2339: Property 'host' does not exist on type '{ readonly url: any; readonly cluster: { readonly enabled: any; readonly nodes: any; }; }'.
+src/infrastructure/redis/redis.cluster.ts(90,27): error TS2339: Property 'port' does not exist on type '{ readonly url: any; readonly cluster: { readonly enabled: any; readonly nodes: any; }; }'.
+src/infrastructure/redis/redis.cluster.ts(91,31): error TS2339: Property 'password' does not exist on type '{ readonly url: any; readonly cluster: { readonly enabled: any; readonly nodes: any; }; }'.
+src/infrastructure/redis/redis.cluster.ts(92,25): error TS2339: Property 'db' does not exist on type '{ readonly url: any; readonly cluster: { readonly enabled: any; readonly nodes: any; }; }'.
+src/infrastructure/websocket/websocket.server.ts(1,38): error TS2307: Cannot find module 'http' or its corresponding type declarations.
+src/infrastructure/websocket/websocket.server.ts(2,50): error TS2307: Cannot find module 'socket.io' or its corresponding type declarations.
+src/infrastructure/websocket/websocket.server.ts(3,31): error TS2307: Cannot find module '@socket.io/redis-adapter' or its corresponding type declarations.
+src/infrastructure/websocket/websocket.server.ts(7,10): error TS2305: Module '"../../middleware/auth"' has no exported member 'verifyToken'.
+src/middleware/auth.ts(2,8): error TS1192: Module '"/Users/rodrigo/claude-projects/Coordenacao_WhatsApp/austa-care-platform/backend/node_modules/@types/jsonwebtoken/index"' has no default export.
+src/middleware/auth.ts(24,26): error TS2551: Property 'headers' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'. Did you mean 'header'?
+src/middleware/auth.ts(162,26): error TS2551: Property 'headers' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'. Did you mean 'header'?
+src/middleware/errorHandler.ts(2,24): error TS2307: Cannot find module '@/utils/logger' or its corresponding type declarations.
+src/middleware/errorHandler.ts(59,7): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/middleware/errorHandler.ts(68,11): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/middleware/notFoundHandler.ts(2,24): error TS2307: Cannot find module '@/utils/logger' or its corresponding type declarations.
+src/middleware/validation.ts(2,19): error TS2307: Cannot find module 'zod' or its corresponding type declarations.
+src/routes/advanced-risk.ts(6,8): error TS1259: Module '"/Users/rodrigo/claude-projects/Coordenacao_WhatsApp/austa-care-platform/backend/node_modules/@types/express/index"' can only be default-imported using the 'esModuleInterop' flag
+src/routes/advanced-risk.ts(9,29): error TS2307: Cannot find module '../middleware/rateLimiter' or its corresponding type declarations.
+src/routes/advanced-risk.ts(10,10): error TS2305: Module '"../middleware/auth"' has no exported member 'authMiddleware'.
+src/routes/advanced-risk.ts(11,21): error TS2307: Cannot find module 'joi' or its corresponding type declarations.
+src/routes/ai.ts(3,23): error TS2307: Cannot find module 'express-rate-limit' or its corresponding type declarations.
+src/routes/authorization.ts(2,8): error TS1259: Module '"/Users/rodrigo/claude-projects/Coordenacao_WhatsApp/austa-care-platform/backend/node_modules/@types/multer/index"' can only be default-imported using the 'esModuleInterop' flag
+src/routes/authorization.ts(3,19): error TS2307: Cannot find module 'zod' or its corresponding type declarations.
+src/routes/authorization.ts(17,27): error TS2307: Cannot find module 'express-rate-limit' or its corresponding type declarations.
+src/server.ts(1,8): error TS1259: Module '"/Users/rodrigo/claude-projects/Coordenacao_WhatsApp/austa-care-platform/backend/node_modules/@types/express/index"' can only be default-imported using the 'esModuleInterop' flag
+src/server.ts(2,30): error TS2307: Cannot find module 'http' or its corresponding type declarations.
+src/server.ts(3,8): error TS1259: Module '"/Users/rodrigo/claude-projects/Coordenacao_WhatsApp/austa-care-platform/backend/node_modules/@types/cors/index"' can only be default-imported using the 'esModuleInterop' flag
+src/server.ts(4,20): error TS2307: Cannot find module 'helmet' or its corresponding type declarations.
+src/server.ts(5,8): error TS1259: Module '"/Users/rodrigo/claude-projects/Coordenacao_WhatsApp/austa-care-platform/backend/node_modules/@types/compression/index"' can only be default-imported using the 'esModuleInterop' flag
+src/server.ts(6,8): error TS1259: Module '"/Users/rodrigo/claude-projects/Coordenacao_WhatsApp/austa-care-platform/backend/node_modules/@types/morgan/index"' can only be default-imported using the 'esModuleInterop' flag
+src/server.ts(7,23): error TS2307: Cannot find module 'express-rate-limit' or its corresponding type declarations.
+src/server.ts(174,5): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/server.ts(177,5): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/server.ts(182,1): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/server.ts(183,1): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/server.ts(186,1): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/server.ts(193,1): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/server.ts(213,5): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/adaptiveMissionEngine.ts(382,30): error TS2322: Type '"engagement_based"' is not assignable to type '"response_pattern" | "risk_escalation" | "engagement_drop" | "confusion_detected" | "expertise_level"'.
+src/services/adaptiveMissionEngine.ts(389,30): error TS2322: Type '"engagement_based"' is not assignable to type '"response_pattern" | "risk_escalation" | "engagement_drop" | "confusion_detected" | "expertise_level"'.
+src/services/adaptiveMissionEngine.ts(1308,20): error TS2322: Type '"escalation_needed"' is not assignable to type '"engagement_level" | "response_quality" | "completion_time" | "confusion_indicators" | "error_rate"'.
+src/services/auditService.ts(1,30): error TS2307: Cannot find module 'events' or its corresponding type declarations.
+src/services/auditService.ts(24,26): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/auditService.ts(334,12): error TS2339: Property 'emit' does not exist on type 'AuditService'.
+src/services/auditService.ts(394,10): error TS2339: Property 'emit' does not exist on type 'AuditService'.
+src/services/auditService.ts(466,14): error TS2339: Property 'emit' does not exist on type 'AuditService'.
+src/services/auditService.ts(569,37): error TS2802: Type 'MapIterator<[string, AuditEntry[]]>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/services/auditService.ts(582,12): error TS2339: Property 'emit' does not exist on type 'AuditService'.
+src/services/businessRulesEngine.ts(1,30): error TS2307: Cannot find module 'events' or its corresponding type declarations.
+src/services/businessRulesEngine.ts(277,10): error TS2339: Property 'emit' does not exist on type 'BusinessRulesEngine'.
+src/services/businessRulesEngine.ts(303,14): error TS2339: Property 'emit' does not exist on type 'BusinessRulesEngine'.
+src/services/businessRulesEngine.ts(358,10): error TS2339: Property 'emit' does not exist on type 'BusinessRulesEngine'.
+src/services/businessRulesEngine.ts(436,12): error TS2339: Property 'emit' does not exist on type 'BusinessRulesEngine'.
+src/services/businessRulesEngine.ts(607,12): error TS2339: Property 'emit' does not exist on type 'BusinessRulesEngine'.
+src/services/businessRulesEngine.ts(615,12): error TS2339: Property 'emit' does not exist on type 'BusinessRulesEngine'.
+src/services/businessRulesEngine.ts(622,12): error TS2339: Property 'emit' does not exist on type 'BusinessRulesEngine'.
+src/services/businessRulesEngine.ts(628,12): error TS2339: Property 'emit' does not exist on type 'BusinessRulesEngine'.
+src/services/businessRulesEngine.ts(635,12): error TS2339: Property 'emit' does not exist on type 'BusinessRulesEngine'.
+src/services/businessRulesEngine.ts(671,23): error TS2802: Type 'MapIterator<string>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/services/conversationFlowEngine.ts(545,13): error TS2339: Property 'lastActivity' does not exist on type 'ConversationState'.
+src/services/conversationStateManager.ts(476,16): error TS2802: Type 'Set<string>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/services/conversationStateManager.ts(617,16): error TS2802: Type 'Set<string>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/services/conversationStateManager.ts(793,30): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/services/documentIntelligence.ts(1,30): error TS2307: Cannot find module 'events' or its corresponding type declarations.
+src/services/documentIntelligence.ts(2,30): error TS2307: Cannot find module 'tesseract.js' or its corresponding type declarations.
+src/services/documentIntelligence.ts(3,20): error TS2307: Cannot find module '@google-cloud/vision' or its corresponding type declarations.
+src/services/documentIntelligence.ts(163,12): error TS2339: Property 'emit' does not exist on type 'DocumentIntelligenceService'.
+src/services/documentIntelligence.ts(174,12): error TS2339: Property 'emit' does not exist on type 'DocumentIntelligenceService'.
+src/services/documentIntelligence.ts(353,12): error TS2339: Property 'emit' does not exist on type 'DocumentIntelligenceService'.
+src/services/engagement/analytics/ConversationQualityEngine.ts(1,28): error TS2307: Cannot find module '@nestjs/common' or its corresponding type declarations.
+src/services/engagement/analytics/ConversationQualityEngine.ts(2,34): error TS2307: Cannot find module '@nestjs/typeorm' or its corresponding type declarations.
+src/services/engagement/analytics/ConversationQualityEngine.ts(3,28): error TS2307: Cannot find module 'typeorm' or its corresponding type declarations.
+src/services/engagement/analytics/ConversationQualityEngine.ts(180,5): error TS1206: Decorators are not valid here.
+src/services/engagement/analytics/ConversationQualityEngine.ts(183,5): error TS1206: Decorators are not valid here.
+src/services/engagement/analytics/ConversationQualityEngine.ts(230,16): error TS2339: Property 'updateConversationLearning' does not exist on type 'ConversationQualityEngine'.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(1,28): error TS2307: Cannot find module '@nestjs/common' or its corresponding type declarations.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(2,34): error TS2307: Cannot find module '@nestjs/typeorm' or its corresponding type declarations.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(3,28): error TS2307: Cannot find module 'typeorm' or its corresponding type declarations.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(4,38): error TS2307: Cannot find module '@nestjs/schedule' or its corresponding type declarations.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(11,3): error TS2459: Module '"../retention/PredictiveRetentionSystem"' declares 'ChurnPrediction' locally, but it is not exported.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(12,3): error TS2459: Module '"../retention/PredictiveRetentionSystem"' declares 'RetentionIntervention' locally, but it is not exported.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(13,3): error TS2459: Module '"../retention/PredictiveRetentionSystem"' declares 'RetentionMetrics' locally, but it is not exported.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(337,5): error TS1206: Decorators are not valid here.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(340,5): error TS1206: Decorators are not valid here.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(343,5): error TS1206: Decorators are not valid here.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(346,5): error TS1206: Decorators are not valid here.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(349,5): error TS1206: Decorators are not valid here.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(352,5): error TS1206: Decorators are not valid here.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(449,36): error TS2339: Property 'getABTestData' does not exist on type 'PerformanceAnalyticsDashboard'.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(450,27): error TS2339: Property 'analyzeABTestResults' does not exist on type 'PerformanceAnalyticsDashboard'.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(481,27): error TS2339: Property 'generateChurnAnalysisReport' does not exist on type 'PerformanceAnalyticsDashboard'.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(482,25): error TS2339: Property 'extractChurnInsights' does not exist on type 'PerformanceAnalyticsDashboard'.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(483,32): error TS2551: Property 'generateChurnRecommendations' does not exist on type 'PerformanceAnalyticsDashboard'. Did you mean 'generateSystemRecommendations'?
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(487,27): error TS2551: Property 'generateEngagementDeepDive' does not exist on type 'PerformanceAnalyticsDashboard'. Did you mean 'generateEngagementOverview'?
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(488,25): error TS2339: Property 'extractEngagementInsights' does not exist on type 'PerformanceAnalyticsDashboard'.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(489,32): error TS2551: Property 'generateEngagementRecommendations' does not exist on type 'PerformanceAnalyticsDashboard'. Did you mean 'generateSystemRecommendations'?
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(493,27): error TS2339: Property 'generateInterventionReport' does not exist on type 'PerformanceAnalyticsDashboard'.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(494,25): error TS2339: Property 'extractInterventionInsights' does not exist on type 'PerformanceAnalyticsDashboard'.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(495,32): error TS2551: Property 'generateInterventionRecommendations' does not exist on type 'PerformanceAnalyticsDashboard'. Did you mean 'generateOptimizationRecommendations'?
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(520,35): error TS2339: Property 'extractCriticalInsights' does not exist on type 'PerformanceAnalyticsDashboard'.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(525,18): error TS2339: Property 'sendCriticalAlerts' does not exist on type 'PerformanceAnalyticsDashboard'.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(529,16): error TS2339: Property 'storeDailyReport' does not exist on type 'PerformanceAnalyticsDashboard'.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(543,39): error TS2339: Property 'getCurrentPerformanceMetrics' does not exist on type 'PerformanceAnalyticsDashboard'.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(544,35): error TS2339: Property 'getIndustryBenchmarks' does not exist on type 'PerformanceAnalyticsDashboard'.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(545,23): error TS2339: Property 'identifyPerformanceGaps' does not exist on type 'PerformanceAnalyticsDashboard'.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(548,33): error TS2339: Property 'generateSystemOptimizations' does not exist on type 'PerformanceAnalyticsDashboard'.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(549,41): error TS2339: Property 'generateUXOptimizations' does not exist on type 'PerformanceAnalyticsDashboard'.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(550,37): error TS2339: Property 'generateEngagementOptimizations' does not exist on type 'PerformanceAnalyticsDashboard'.
+src/services/engagement/analytics/PerformanceAnalyticsDashboard.ts(551,31): error TS2339: Property 'generateCostOptimizations' does not exist on type 'PerformanceAnalyticsDashboard'.
+src/services/engagement/behavioral/BehavioralIntelligenceEngine.ts(1,28): error TS2307: Cannot find module '@nestjs/common' or its corresponding type declarations.
+src/services/engagement/behavioral/BehavioralIntelligenceEngine.ts(2,34): error TS2307: Cannot find module '@nestjs/typeorm' or its corresponding type declarations.
+src/services/engagement/behavioral/BehavioralIntelligenceEngine.ts(3,28): error TS2307: Cannot find module 'typeorm' or its corresponding type declarations.
+src/services/engagement/behavioral/BehavioralIntelligenceEngine.ts(21,5): error TS1206: Decorators are not valid here.
+src/services/engagement/behavioral/BehavioralIntelligenceEngine.ts(24,5): error TS1206: Decorators are not valid here.
+src/services/engagement/gamification/AdaptiveGamificationSystem.ts(1,28): error TS2307: Cannot find module '@nestjs/common' or its corresponding type declarations.
+src/services/engagement/gamification/AdaptiveGamificationSystem.ts(2,34): error TS2307: Cannot find module '@nestjs/typeorm' or its corresponding type declarations.
+src/services/engagement/gamification/AdaptiveGamificationSystem.ts(3,28): error TS2307: Cannot find module 'typeorm' or its corresponding type declarations.
+src/services/engagement/gamification/AdaptiveGamificationSystem.ts(25,5): error TS1206: Decorators are not valid here.
+src/services/engagement/gamification/AdaptiveGamificationSystem.ts(28,5): error TS1206: Decorators are not valid here.
+src/services/engagement/gamification/AdaptiveGamificationSystem.ts(31,5): error TS1206: Decorators are not valid here.
+src/services/engagement/retention/PredictiveRetentionSystem.ts(1,28): error TS2307: Cannot find module '@nestjs/common' or its corresponding type declarations.
+src/services/engagement/retention/PredictiveRetentionSystem.ts(2,34): error TS2307: Cannot find module '@nestjs/typeorm' or its corresponding type declarations.
+src/services/engagement/retention/PredictiveRetentionSystem.ts(3,28): error TS2307: Cannot find module 'typeorm' or its corresponding type declarations.
+src/services/engagement/retention/PredictiveRetentionSystem.ts(4,38): error TS2307: Cannot find module '@nestjs/schedule' or its corresponding type declarations.
+src/services/engagement/retention/PredictiveRetentionSystem.ts(30,5): error TS1206: Decorators are not valid here.
+src/services/engagement/retention/PredictiveRetentionSystem.ts(33,5): error TS1206: Decorators are not valid here.
+src/services/engagement/retention/PredictiveRetentionSystem.ts(36,5): error TS1206: Decorators are not valid here.
+src/services/engagement/retention/PredictiveRetentionSystem.ts(310,9): error TS2345: Argument of type 'string' is not assignable to parameter of type '"urgent" | "high" | "medium" | "low"'.
+src/services/engagement/social/SocialEngagementEngine.ts(1,28): error TS2307: Cannot find module '@nestjs/common' or its corresponding type declarations.
+src/services/engagement/social/SocialEngagementEngine.ts(2,34): error TS2307: Cannot find module '@nestjs/typeorm' or its corresponding type declarations.
+src/services/engagement/social/SocialEngagementEngine.ts(3,28): error TS2307: Cannot find module 'typeorm' or its corresponding type declarations.
+src/services/engagement/social/SocialEngagementEngine.ts(160,5): error TS1206: Decorators are not valid here.
+src/services/engagement/social/SocialEngagementEngine.ts(163,5): error TS1206: Decorators are not valid here.
+src/services/engagement/social/SocialEngagementEngine.ts(166,5): error TS1206: Decorators are not valid here.
+src/services/engagement/social/SocialEngagementEngine.ts(169,5): error TS1206: Decorators are not valid here.
+src/services/engagement/social/SocialEngagementEngine.ts(777,16): error TS2802: Type 'Set<MotivationType>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/services/healthPromptService.ts(253,28): error TS2802: Type 'MapIterator<HealthPromptTemplate>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/services/nlpAnalyticsService.ts(356,40): error TS2802: Type 'MapIterator<[HealthIntent, { keywords: string[]; patterns: RegExp[]; }]>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/services/nlpAnalyticsService.ts(1174,43): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/notificationService.ts(1,30): error TS2307: Cannot find module 'events' or its corresponding type declarations.
+src/services/notificationService.ts(35,9): error TS2322: Type '"approve"' is not assignable to type 'WorkflowAction'.
+src/services/notificationService.ts(65,9): error TS2322: Type '"reject"' is not assignable to type 'WorkflowAction'.
+src/services/notificationService.ts(98,9): error TS2322: Type '"request_additional_info"' is not assignable to type 'WorkflowAction'.
+src/services/notificationService.ts(128,9): error TS2322: Type '"assign_reviewer"' is not assignable to type 'WorkflowAction'.
+src/services/notificationService.ts(150,9): error TS2322: Type '"escalate"' is not assignable to type 'WorkflowAction'.
+src/services/notificationService.ts(171,9): error TS2322: Type '"expiration_warning"' is not assignable to type 'WorkflowAction'.
+src/services/notificationService.ts(185,9): error TS2322: Type '"appeal"' is not assignable to type 'WorkflowAction'.
+src/services/notificationService.ts(296,10): error TS2339: Property 'emit' does not exist on type 'NotificationService'.
+src/services/notificationService.ts(406,28): error TS2802: Type 'MapIterator<NotificationTemplate>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/services/notificationService.ts(444,72): error TS1501: This regular expression flag is only available when targeting 'es2018' or later.
+src/services/notificationService.ts(476,12): error TS2339: Property 'emit' does not exist on type 'NotificationService'.
+src/services/notificationService.ts(523,12): error TS2339: Property 'emit' does not exist on type 'NotificationService'.
+src/services/ocr/config/textract.config.ts(9,11): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/config/textract.config.ts(10,16): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/config/textract.config.ts(11,20): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/config/textract.config.ts(12,15): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/config/textract.config.ts(13,22): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/config/textract.config.ts(14,35): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/config/textract.config.ts(15,23): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/config/textract.config.ts(151,12): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/config/textract.config.ts(173,13): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/errors/textract.errors.ts(26,15): error TS2339: Property 'captureStackTrace' does not exist on type 'ErrorConstructor'.
+src/services/ocr/errors/textract.errors.ts(27,13): error TS2339: Property 'captureStackTrace' does not exist on type 'ErrorConstructor'.
+src/services/ocr/index.ts(24,1): error TS2308: Module './types/medical-document.types' has already exported a member named 'ValidationError'. Consider explicitly re-exporting to resolve the ambiguity.
+src/services/ocr/medical/medical-entity-extractor.service.ts(353,9): error TS2322: Type '"PROVIDER_INFO"' is not assignable to type '"MEDICATION" | "LAB_VALUE" | "DIAGNOSIS" | "DOSAGE" | "FREQUENCY" | "PROVIDER" | "PATIENT_INFO"'.
+src/services/ocr/medical/medical-entity-extractor.service.ts(365,9): error TS2322: Type '"PROVIDER_INFO"' is not assignable to type '"MEDICATION" | "LAB_VALUE" | "DIAGNOSIS" | "DOSAGE" | "FREQUENCY" | "PROVIDER" | "PATIENT_INFO"'.
+src/services/ocr/medical/medical-entity-extractor.service.ts(388,9): error TS2322: Type '"IMAGING"' is not assignable to type '"MEDICATION" | "LAB_VALUE" | "DIAGNOSIS" | "DOSAGE" | "FREQUENCY" | "PROVIDER" | "PATIENT_INFO"'.
+src/services/ocr/medical/medical-entity-extractor.service.ts(400,9): error TS2322: Type '"IMAGING"' is not assignable to type '"MEDICATION" | "LAB_VALUE" | "DIAGNOSIS" | "DOSAGE" | "FREQUENCY" | "PROVIDER" | "PATIENT_INFO"'.
+src/services/ocr/medical/medical-entity-extractor.service.ts(412,9): error TS2322: Type '"IMAGING"' is not assignable to type '"MEDICATION" | "LAB_VALUE" | "DIAGNOSIS" | "DOSAGE" | "FREQUENCY" | "PROVIDER" | "PATIENT_INFO"'.
+src/services/ocr/monitoring/monitoring.service.ts(301,20): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/monitoring/monitoring.service.ts(302,17): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/monitoring/monitoring.service.ts(303,15): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/processors/fhir-mapper.service.ts(177,67): error TS2367: This comparison appears to be unintentional because the types '"MEDICATION" | "LAB_VALUE" | "DIAGNOSIS" | "DOSAGE" | "FREQUENCY" | "PROVIDER" | "PATIENT_INFO"' and '"PROVIDER_INFO"' have no overlap.
+src/services/ocr/processors/fhir-mapper.service.ts(443,66): error TS2367: This comparison appears to be unintentional because the types '"MEDICATION" | "LAB_VALUE" | "DIAGNOSIS" | "DOSAGE" | "FREQUENCY" | "PROVIDER" | "PATIENT_INFO"' and '"IMAGING"' have no overlap.
+src/services/ocr/processors/fhir-mapper.service.ts(615,15): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/textract/textract.service.ts(6,17): error TS2307: Cannot find module 'aws-sdk' or its corresponding type declarations.
+src/services/ocr/utils/formatters.ts(121,65): error TS2367: This comparison appears to be unintentional because the types '"MEDICATION" | "LAB_VALUE" | "DIAGNOSIS" | "DOSAGE" | "FREQUENCY" | "PROVIDER" | "PATIENT_INFO"' and '"PROVIDER_INFO"' have no overlap.
+src/services/ocr/utils/formatters.ts(228,24): error TS2802: Type 'Set<any>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/services/ocr/utils/formatters.ts(373,61): error TS2367: This comparison appears to be unintentional because the types '"MEDICATION" | "LAB_VALUE" | "DIAGNOSIS" | "DOSAGE" | "FREQUENCY" | "PROVIDER" | "PATIENT_INFO"' and '"PROVIDER_INFO"' have no overlap.
+src/services/ocr/utils/formatters.ts(429,42): error TS2367: This comparison appears to be unintentional because the types '"MEDICATION" | "LAB_VALUE" | "DIAGNOSIS" | "DOSAGE" | "FREQUENCY" | "PROVIDER" | "PATIENT_INFO"' and '"PROVIDER_INFO"' have no overlap.
+src/services/ocr/utils/formatters.ts(518,35): error TS2367: This comparison appears to be unintentional because the types '"MEDICATION" | "LAB_VALUE" | "DIAGNOSIS" | "DOSAGE" | "FREQUENCY" | "PROVIDER" | "PATIENT_INFO"' and '"PROVIDER_INFO"' have no overlap.
+src/services/ocr/utils/validators.ts(24,9): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/utils/validators.ts(46,20): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/utils/validators.ts(46,58): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/utils/validators.ts(276,46): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/utils/validators.ts(293,7): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/utils/validators.ts(308,40): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/utils/validators.ts(313,22): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/utils/validators.ts(313,60): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/utils/validators.ts(321,41): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/utils/validators.ts(325,20): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/utils/validators.ts(325,58): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/utils/validators.ts(342,34): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/utils/validators.ts(346,18): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/utils/validators.ts(346,49): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/utils/validators.ts(368,36): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/utils/validators.ts(372,18): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/utils/validators.ts(372,49): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/utils/validators.ts(377,41): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/utils/validators.ts(383,25): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/utils/validators.ts(390,28): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/ocr/utils/validators.ts(391,28): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/openaiService.ts(1,20): error TS2307: Cannot find module 'openai' or its corresponding type declarations.
+src/services/openaiService.ts(445,25): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/services/redisService.ts(1,19): error TS2307: Cannot find module 'redis' or its corresponding type declarations.
+src/services/risk-assessment.service.ts(63,34): error TS2339: Property 'generateEmergencyAlerts' does not exist on type 'AdvancedRiskAssessmentService'.
+src/services/risk-assessment.service.ts(72,34): error TS2339: Property 'generateClinicalRecommendations' does not exist on type 'AdvancedRiskAssessmentService'.
+src/services/risk-assessment.service.ts(81,35): error TS2339: Property 'createFollowupSchedule' does not exist on type 'AdvancedRiskAssessmentService'.
+src/services/risk-assessment.service.ts(90,37): error TS2339: Property 'determineEscalationProtocol' does not exist on type 'AdvancedRiskAssessmentService'.
+src/services/risk-assessment.service.ts(181,26): error TS2339: Property 'extractDiabetesFactors' does not exist on type 'AdvancedRiskAssessmentService'.
+src/services/risk-assessment.service.ts(202,36): error TS2339: Property 'extractAdditionalDiabetesFactors' does not exist on type 'AdvancedRiskAssessmentService'.
+src/services/risk-assessment.service.ts(240,26): error TS2339: Property 'calculateDKARisk' does not exist on type 'AdvancedRiskAssessmentService'.
+src/services/risk-assessment.service.ts(241,30): error TS2339: Property 'calculateKetosisRisk' does not exist on type 'AdvancedRiskAssessmentService'.
+src/services/risk-assessment.service.ts(263,39): error TS2339: Property 'assessDepressionIndicators' does not exist on type 'AdvancedRiskAssessmentService'.
+src/services/risk-assessment.service.ts(264,36): error TS2339: Property 'assessAnxietyIndicators' does not exist on type 'AdvancedRiskAssessmentService'.
+src/services/risk-assessment.service.ts(265,30): error TS2339: Property 'assessSuicideRisk' does not exist on type 'AdvancedRiskAssessmentService'.
+src/services/risk-assessment.service.ts(301,35): error TS2339: Property 'assessAsthmaIndicators' does not exist on type 'AdvancedRiskAssessmentService'.
+src/services/risk-assessment.service.ts(302,33): error TS2339: Property 'assessCOPDIndicators' does not exist on type 'AdvancedRiskAssessmentService'.
+src/services/risk-assessment.service.ts(303,39): error TS2339: Property 'assessSleepApneaIndicators' does not exist on type 'AdvancedRiskAssessmentService'.
+src/services/risk-assessment.service.ts(324,26): error TS2339: Property 'calculateAsthmaScore' does not exist on type 'AdvancedRiskAssessmentService'.
+src/services/risk-assessment.service.ts(327,26): error TS2339: Property 'calculateCOPDScore' does not exist on type 'AdvancedRiskAssessmentService'.
+src/services/risk-assessment.service.ts(330,26): error TS2339: Property 'calculateSleepApneaScore' does not exist on type 'AdvancedRiskAssessmentService'.
+src/services/risk-assessment.service.ts(440,40): error TS2339: Property 'prioritizeConditions' does not exist on type 'AdvancedRiskAssessmentService'.
+src/services/risk-assessment.service.ts(537,34): error TS2339: Property 'extractedRiskFactors' does not exist on type 'ProcessedQuestionnaire'.
+src/services/stateMachine.ts(1,30): error TS2307: Cannot find module 'events' or its corresponding type declarations.
+src/services/stateMachine.ts(331,12): error TS2339: Property 'emit' does not exist on type 'AuthorizationStateMachine'.
+src/services/stateMachine.ts(340,12): error TS2339: Property 'emit' does not exist on type 'AuthorizationStateMachine'.
+src/services/stateMachine.ts(348,12): error TS2339: Property 'emit' does not exist on type 'AuthorizationStateMachine'.
+src/services/stateMachine.ts(356,12): error TS2339: Property 'emit' does not exist on type 'AuthorizationStateMachine'.
+src/services/stateMachine.ts(364,12): error TS2339: Property 'emit' does not exist on type 'AuthorizationStateMachine'.
+src/services/stateMachine.ts(372,12): error TS2339: Property 'emit' does not exist on type 'AuthorizationStateMachine'.
+src/services/stateMachine.ts(380,12): error TS2339: Property 'emit' does not exist on type 'AuthorizationStateMachine'.
+src/services/stateMachine.ts(389,12): error TS2339: Property 'emit' does not exist on type 'AuthorizationStateMachine'.
+src/services/stateMachine.ts(395,12): error TS2339: Property 'emit' does not exist on type 'AuthorizationStateMachine'.
+src/services/stateMachine.ts(402,12): error TS2339: Property 'emit' does not exist on type 'AuthorizationStateMachine'.
+src/services/stateMachine.ts(411,12): error TS2339: Property 'emit' does not exist on type 'AuthorizationStateMachine'.
+src/services/stateMachine.ts(417,12): error TS2339: Property 'emit' does not exist on type 'AuthorizationStateMachine'.
+src/services/stateMachine.ts(463,16): error TS2339: Property 'emit' does not exist on type 'AuthorizationStateMachine'.
+src/services/stateMachine.ts(547,38): error TS2802: Type 'MapIterator<[string, StateTransition[]]>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/services/stateMachine.ts(554,16): error TS2802: Type 'Set<WorkflowAction>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/services/tasyIntegration.ts(1,30): error TS2307: Cannot find module 'events' or its corresponding type declarations.
+src/services/tasyIntegration.ts(2,58): error TS2307: Cannot find module 'axios' or its corresponding type declarations.
+src/services/tasyIntegration.ts(11,14): error TS2420: Class 'TasyIntegrationService' incorrectly implements interface 'TasyIntegration'.
+  Property 'eligibilityCheck' is missing in type 'TasyIntegrationService' but required in type 'TasyIntegration'.
+src/services/tasyIntegration.ts(145,12): error TS2339: Property 'emit' does not exist on type 'TasyIntegrationService'.
+src/services/tasyIntegration.ts(179,25): error TS2802: Type 'MapIterator<[string, number]>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/services/tasyIntegration.ts(205,12): error TS2339: Property 'emit' does not exist on type 'TasyIntegrationService'.
+src/services/tasyIntegration.ts(281,12): error TS2339: Property 'emit' does not exist on type 'TasyIntegrationService'.
+src/services/tasyIntegration.ts(316,12): error TS2339: Property 'emit' does not exist on type 'TasyIntegrationService'.
+src/services/tasyIntegration.ts(348,12): error TS2339: Property 'emit' does not exist on type 'TasyIntegrationService'.
+src/services/tasyIntegration.ts(380,12): error TS2339: Property 'emit' does not exist on type 'TasyIntegrationService'.
+src/services/tasyIntegration.ts(417,12): error TS2339: Property 'emit' does not exist on type 'TasyIntegrationService'.
+src/services/tasyIntegration.ts(487,12): error TS2339: Property 'emit' does not exist on type 'TasyIntegrationService'.
+src/services/tasyIntegration.ts(631,10): error TS2339: Property 'emit' does not exist on type 'TasyIntegrationService'.
+src/services/temporal-risk-tracking.service.ts(192,24): error TS2367: This comparison appears to be unintentional because the types '"immediate" | "urgent" | "routine" | "preventive"' and '"cardiovascular"' have no overlap.
+src/services/temporal-risk-tracking.service.ts(207,24): error TS2367: This comparison appears to be unintentional because the types '"immediate" | "urgent" | "routine" | "preventive"' and '"diabetes"' have no overlap.
+src/services/temporal-risk-tracking.service.ts(222,24): error TS2367: This comparison appears to be unintentional because the types '"immediate" | "urgent" | "routine" | "preventive"' and '"mental_health"' have no overlap.
+src/services/temporal-risk-tracking.service.ts(237,24): error TS2367: This comparison appears to be unintentional because the types '"immediate" | "urgent" | "routine" | "preventive"' and '"respiratory"' have no overlap.
+src/services/temporal-risk-tracking.service.ts(516,5): error TS2322: Type '{ condition: string; progression: "stable" | "improving" | "worsening" | "fluctuating" | "rapid_decline"; timeframe: number; confidenceLevel: number; }[]' is not assignable to type '{ condition: string; progression: "stable" | "improving" | "worsening" | "rapid_decline"; timeframe: number; confidenceLevel: number; }[]'.
+  Type '{ condition: string; progression: "stable" | "improving" | "worsening" | "fluctuating" | "rapid_decline"; timeframe: number; confidenceLevel: number; }' is not assignable to type '{ condition: string; progression: "stable" | "improving" | "worsening" | "rapid_decline"; timeframe: number; confidenceLevel: number; }'.
+    Types of property 'progression' are incompatible.
+      Type '"stable" | "improving" | "worsening" | "fluctuating" | "rapid_decline"' is not assignable to type '"stable" | "improving" | "worsening" | "rapid_decline"'.
+        Type '"fluctuating"' is not assignable to type '"stable" | "improving" | "worsening" | "rapid_decline"'.
+src/services/webhook-processor.service.ts(6,24): error TS2307: Cannot find module '@/utils/logger' or its corresponding type declarations.
+src/services/webhook-processor.service.ts(13,8): error TS2307: Cannot find module '@/types/whatsapp' or its corresponding type declarations.
+src/services/webhook-processor.service.ts(14,30): error TS2307: Cannot find module 'events' or its corresponding type declarations.
+src/services/webhook-processor.service.ts(86,12): error TS2339: Property 'emit' does not exist on type 'WebhookProcessorService'.
+src/services/webhook-processor.service.ts(96,12): error TS2339: Property 'emit' does not exist on type 'WebhookProcessorService'.
+src/services/webhook-processor.service.ts(109,12): error TS2339: Property 'emit' does not exist on type 'WebhookProcessorService'.
+src/services/webhook-processor.service.ts(181,10): error TS2339: Property 'emit' does not exist on type 'WebhookProcessorService'.
+src/services/webhook-processor.service.ts(213,10): error TS2339: Property 'emit' does not exist on type 'WebhookProcessorService'.
+src/services/webhook-processor.service.ts(244,10): error TS2339: Property 'emit' does not exist on type 'WebhookProcessorService'.
+src/services/webhook-processor.service.ts(274,10): error TS2339: Property 'emit' does not exist on type 'WebhookProcessorService'.
+src/services/webhook-processor.service.ts(304,10): error TS2339: Property 'emit' does not exist on type 'WebhookProcessorService'.
+src/services/webhook-processor.service.ts(335,10): error TS2339: Property 'emit' does not exist on type 'WebhookProcessorService'.
+src/services/webhook-processor.service.ts(364,10): error TS2339: Property 'emit' does not exist on type 'WebhookProcessorService'.
+src/services/webhook-processor.service.ts(393,10): error TS2339: Property 'emit' does not exist on type 'WebhookProcessorService'.
+src/services/webhook-processor.service.ts(422,10): error TS2339: Property 'emit' does not exist on type 'WebhookProcessorService'.
+src/services/webhook-processor.service.ts(444,10): error TS2339: Property 'emit' does not exist on type 'WebhookProcessorService'.
+src/services/webhook-processor.service.ts(471,10): error TS2339: Property 'emit' does not exist on type 'WebhookProcessorService'.
+src/services/webhook-processor.service.ts(492,10): error TS2339: Property 'emit' does not exist on type 'WebhookProcessorService'.
+src/services/whatsapp.service.ts(6,73): error TS2307: Cannot find module 'axios' or its corresponding type declarations.
+src/services/whatsapp.service.ts(7,24): error TS2307: Cannot find module '@/utils/logger' or its corresponding type declarations.
+src/services/whatsapp.service.ts(8,24): error TS2307: Cannot find module '@/config/config' or its corresponding type declarations.
+src/services/whatsapp.service.ts(32,8): error TS2307: Cannot find module '@/types/whatsapp' or its corresponding type declarations.
+src/services/whatsapp.service.ts(41,38): error TS2503: Cannot find namespace 'NodeJS'.
+src/services/whatsapp.service.ts(634,23): error TS2339: Property 'success' does not exist on type 'unknown'.
+src/services/whatsapp.service.ts(658,23): error TS2339: Property 'success' does not exist on type 'unknown'.
+src/services/whatsappAIIntegration.ts(88,31): error TS2551: Property 'getAdvancedEmergencyResponse' does not exist on type 'WhatsAppAIIntegration'. Did you mean 'getEmergencyResponse'?
+src/services/whatsappAIIntegration.ts(90,11): error TS2322: Type 'UrgencyLevel' is not assignable to type '"high" | "medium" | "low" | "critical"'.
+  Type '"emergency"' is not assignable to type '"high" | "medium" | "low" | "critical"'.
+src/services/whatsappAIIntegration.ts(163,55): error TS2339: Property 'contextBridge' does not exist on type 'SessionRecoveryData'.
+src/services/whatsappAIIntegration.ts(175,32): error TS2339: Property 'simplifyResponse' does not exist on type 'WhatsAppAIIntegration'.
+src/services/whatsappAIIntegration.ts(223,42): error TS2339: Property 'generateIntelligentFallback' does not exist on type 'WhatsAppAIIntegration'.
+src/services/workflowOrchestrator.ts(1,30): error TS2307: Cannot find module 'events' or its corresponding type declarations.
+src/services/workflowOrchestrator.ts(35,39): error TS2503: Cannot find namespace 'NodeJS'.
+src/services/workflowOrchestrator.ts(75,7): error TS2740: Type '{}' is missing the following properties from type 'Record<ProcedureCategory, { count: number; averageTime: number; approvalRate: number; }>': consultation, diagnostic, therapeutic, surgical, and 4 more.
+src/services/workflowOrchestrator.ts(84,23): error TS2339: Property 'on' does not exist on type 'AuthorizationStateMachine'.
+src/services/workflowOrchestrator.ts(85,23): error TS2339: Property 'on' does not exist on type 'AuthorizationStateMachine'.
+src/services/workflowOrchestrator.ts(86,23): error TS2339: Property 'on' does not exist on type 'AuthorizationStateMachine'.
+src/services/workflowOrchestrator.ts(87,23): error TS2339: Property 'on' does not exist on type 'AuthorizationStateMachine'.
+src/services/workflowOrchestrator.ts(88,23): error TS2339: Property 'on' does not exist on type 'AuthorizationStateMachine'.
+src/services/workflowOrchestrator.ts(89,23): error TS2339: Property 'on' does not exist on type 'AuthorizationStateMachine'.
+src/services/workflowOrchestrator.ts(92,24): error TS2339: Property 'on' does not exist on type 'BusinessRulesEngine'.
+src/services/workflowOrchestrator.ts(93,24): error TS2339: Property 'on' does not exist on type 'BusinessRulesEngine'.
+src/services/workflowOrchestrator.ts(96,31): error TS2339: Property 'on' does not exist on type 'DocumentIntelligenceService'.
+src/services/workflowOrchestrator.ts(97,31): error TS2339: Property 'on' does not exist on type 'DocumentIntelligenceService'.
+src/services/workflowOrchestrator.ts(100,26): error TS2339: Property 'on' does not exist on type 'TasyIntegrationService'.
+src/services/workflowOrchestrator.ts(101,26): error TS2339: Property 'on' does not exist on type 'TasyIntegrationService'.
+src/services/workflowOrchestrator.ts(210,7): error TS2322: Type '"workflow_started"' is not assignable to type 'WorkflowAction'.
+src/services/workflowOrchestrator.ts(232,10): error TS2339: Property 'emit' does not exist on type 'WorkflowOrchestrator'.
+src/services/workflowOrchestrator.ts(347,10): error TS2339: Property 'emit' does not exist on type 'WorkflowOrchestrator'.
+src/services/workflowOrchestrator.ts(495,10): error TS2339: Property 'emit' does not exist on type 'WorkflowOrchestrator'.
+src/services/workflowOrchestrator.ts(612,10): error TS2339: Property 'emit' does not exist on type 'WorkflowOrchestrator'.
+src/services/workflowOrchestrator.ts(667,37): error TS2802: Type 'MapIterator<[string, NodeJS.Timeout]>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/tests/ai.test.ts(1,8): error TS1259: Module '"/Users/rodrigo/claude-projects/Coordenacao_WhatsApp/austa-care-platform/backend/node_modules/@types/supertest/index"' can only be default-imported using the 'esModuleInterop' flag
+src/tests/services/advanced-risk-assessment.test.ts(109,51): error TS2339: Property 'toBeOneOf' does not exist on type 'JestMatchers<"high" | "low" | "intermediate" | "very_high">'.
+src/tests/services/advanced-risk-assessment.test.ts(124,61): error TS2339: Property 'toBeOneOf' does not exist on type 'JestMatchers<"high" | "low" | "moderate" | "none" | "imminent">'.
+src/tests/services/advanced-risk-assessment.test.ts(140,49): error TS2339: Property 'toBeOneOf' does not exist on type 'JestMatchers<"high" | "low" | "moderate" | "severe">'.
+src/tests/services/advanced-risk-assessment.test.ts(175,48): error TS2339: Property 'toBeOneOf' does not exist on type 'JestMatchers<"high" | "low" | "critical" | "moderate">'.
+src/tests/services/whatsapp.service.test.ts(6,19): error TS2307: Cannot find module 'axios' or its corresponding type declarations.
+src/tests/services/whatsapp.service.test.ts(7,33): error TS2307: Cannot find module '@/services/whatsapp.service' or its corresponding type declarations.
+src/tests/services/whatsapp.service.test.ts(8,24): error TS2307: Cannot find module '@/config/config' or its corresponding type declarations.
+src/tests/services/whatsapp.service.test.ts(16,8): error TS2307: Cannot find module '@/types/whatsapp' or its corresponding type declarations.
+src/tests/services/whatsapp.service.test.ts(405,18): error TS2304: Cannot find name 'global'.
+src/tests/utils/webhook.test.ts(6,20): error TS2307: Cannot find module 'crypto' or its corresponding type declarations.
+src/tests/utils/webhook.test.ts(14,8): error TS2307: Cannot find module '@/utils/webhook' or its corresponding type declarations.
+src/types/ai.ts(1,20): error TS2307: Cannot find module 'openai' or its corresponding type declarations.
+src/types/authorization.ts(1,19): error TS2307: Cannot find module 'zod' or its corresponding type declarations.
+src/utils/logger.ts(1,21): error TS2307: Cannot find module 'winston' or its corresponding type declarations.
+src/utils/logger.ts(2,24): error TS2307: Cannot find module '@/config/config' or its corresponding type declarations.
+src/utils/webhook.ts(6,20): error TS2307: Cannot find module 'crypto' or its corresponding type declarations.
+src/utils/webhook.ts(7,24): error TS2307: Cannot find module '@/utils/logger' or its corresponding type declarations.
+src/utils/webhook.ts(8,24): error TS2307: Cannot find module '@/config/config' or its corresponding type declarations.
+src/utils/webhook.ts(28,29): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/utils/webhook.ts(29,28): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/utils/webhook.ts(61,28): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/utils/webhook.ts(62,28): error TS2580: Cannot find name 'Buffer'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/utils/webhook.ts(257,42): error TS2802: Type 'MapIterator<[string, number[]]>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.

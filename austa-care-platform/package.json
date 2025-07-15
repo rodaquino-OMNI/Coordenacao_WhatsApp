@@ -1,0 +1,81 @@
+{
+  "name": "austa-care-platform",
+  "version": "1.0.0",
+  "description": "HIPAA-compliant healthcare platform with WhatsApp integration and gamification",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed/development.ts",
+    "db:reset": "prisma migrate reset && npm run db:seed",
+    "db:backup": "pg_dump $DATABASE_URL > backups/backup_$(date +%Y%m%d_%H%M%S).sql",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "format": "prettier --write \"src/**/*.{ts,js,json}\"",
+    "type-check": "tsc --noEmit",
+    "validate": "npm run type-check && npm run lint && npm test"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.19.1",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.6",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "node-cron": "^3.0.3",
+    "winston": "^3.13.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^8.4.1",
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.12",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^20.14.9",
+    "@types/node-cron": "^3.0.11",
+    "@typescript-eslint/eslint-plugin": "^7.16.0",
+    "@typescript-eslint/parser": "^7.16.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "jest": "^29.7.0",
+    "prettier": "^3.3.2",
+    "prisma": "^5.19.1",
+    "ts-jest": "^29.1.5",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.3"
+  },
+  "keywords": [
+    "healthcare",
+    "whatsapp",
+    "hipaa",
+    "telemedicine",
+    "gamification",
+    "ai",
+    "chatbot",
+    "brazil",
+    "prisma",
+    "postgresql"
+  ],
+  "author": "Austa Care Team",
+  "license": "PROPRIETARY",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed/development.ts"
+  }
+}

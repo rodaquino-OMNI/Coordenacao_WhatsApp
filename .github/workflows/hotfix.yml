@@ -1,0 +1,468 @@
+name: Hotfix Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue-id:
+        description: 'Issue/Bug ID to fix'
+        required: true
+        type: string
+      severity:
+        description: 'Severity level'
+        required: true
+        type: choice
+        options:
+          - critical
+          - high
+          - medium
+      target-version:
+        description: 'Target version to patch (e.g., 1.2.3)'
+        required: true
+        type: string
+      services:
+        description: 'Affected services (comma-separated)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+  issues: write
+  pull-requests: write
+
+env:
+  HOTFIX_BRANCH: hotfix/${{ github.event.inputs.issue-id }}
+
+jobs:
+  # Job 1: Prepare Hotfix
+  prepare-hotfix:
+    name: Prepare Hotfix Branch
+    runs-on: ubuntu-latest
+    outputs:
+      branch: ${{ env.HOTFIX_BRANCH }}
+      services: ${{ steps.parse-services.outputs.services }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v${{ github.event.inputs.target-version }}
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create hotfix branch
+        run: |
+          git checkout -b ${{ env.HOTFIX_BRANCH }}
+          git push origin ${{ env.HOTFIX_BRANCH }}
+
+      - name: Parse services
+        id: parse-services
+        run: |
+          # Convert comma-separated services to JSON array
+          SERVICES=$(echo "${{ github.event.inputs.services }}" | jq -R -s -c 'split(",") | map(gsub("^\\s+|\\s+$";""))')
+          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+
+      - name: Create hotfix PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 HOTFIX: ${context.payload.inputs['issue-id']} - ${context.payload.inputs.severity.toUpperCase()}`,
+              head: '${{ env.HOTFIX_BRANCH }}',
+              base: 'main',
+              body: `## Hotfix Details
+              
+              - **Issue ID**: ${context.payload.inputs['issue-id']}
+              - **Severity**: ${context.payload.inputs.severity}
+              - **Target Version**: ${context.payload.inputs['target-version']}
+              - **Affected Services**: ${context.payload.inputs.services}
+              
+              ## Checklist
+              - [ ] Root cause identified
+              - [ ] Fix implemented
+              - [ ] Tests added/updated
+              - [ ] Security review completed
+              - [ ] Performance impact assessed
+              
+              ## Testing
+              - [ ] Unit tests pass
+              - [ ] Integration tests pass
+              - [ ] Manual testing completed
+              - [ ] Staging deployment verified
+              
+              /cc @security-team @oncall-team`,
+              draft: true
+            });
+            
+            // Add labels
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.data.number,
+              labels: ['hotfix', context.payload.inputs.severity, 'fast-track']
+            });
+
+  # Job 2: Fast Security Scan
+  security-scan:
+    name: Fast Security Scan
+    runs-on: ubuntu-latest
+    needs: prepare-hotfix
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare-hotfix.outputs.branch }}
+
+      - name: Run quick security scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          timeout: '5m'
+
+      - name: Secret scanning
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: v${{ github.event.inputs.target-version }}
+          head: HEAD
+
+  # Job 3: Build Hotfix Images
+  build-hotfix:
+    name: Build Hotfix Images
+    runs-on: ubuntu-latest
+    needs: [prepare-hotfix, security-scan]
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.prepare-hotfix.outputs.services) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare-hotfix.outputs.branch }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push hotfix image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.service }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/${{ matrix.service }}:hotfix-${{ github.event.inputs.issue-id }}
+            ghcr.io/${{ github.repository }}/${{ matrix.service }}:${{ github.event.inputs.target-version }}-hotfix
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            HOTFIX_ID=${{ github.event.inputs.issue-id }}
+            BASE_VERSION=${{ github.event.inputs.target-version }}
+
+  # Job 4: Fast Tests
+  fast-tests:
+    name: Fast Test Suite
+    runs-on: ubuntu-latest
+    needs: build-hotfix
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.prepare-hotfix.outputs.services) }}
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: testpass
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare-hotfix.outputs.branch }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: '${{ matrix.service }}/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.service }}
+        run: npm ci --prefer-offline
+
+      - name: Run critical tests only
+        working-directory: ${{ matrix.service }}
+        run: |
+          # Run only critical path tests
+          npm run test:critical -- --bail
+
+  # Job 5: Deploy to Hotfix Environment
+  deploy-hotfix-env:
+    name: Deploy to Hotfix Environment
+    runs-on: ubuntu-latest
+    needs: [prepare-hotfix, build-hotfix, fast-tests]
+    environment:
+      name: hotfix
+      url: https://hotfix.austa-care.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Deploy to hotfix environment
+        run: |
+          # Deploy hotfix to isolated environment
+          kubectl apply -f - <<EOF
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: hotfix-${{ github.event.inputs.issue-id }}
+          ---
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: ${{ matrix.service }}
+            namespace: hotfix-${{ github.event.inputs.issue-id }}
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: ${{ matrix.service }}
+            template:
+              metadata:
+                labels:
+                  app: ${{ matrix.service }}
+                  hotfix: "${{ github.event.inputs.issue-id }}"
+              spec:
+                containers:
+                - name: ${{ matrix.service }}
+                  image: ghcr.io/${{ github.repository }}/${{ matrix.service }}:hotfix-${{ github.event.inputs.issue-id }}
+                  env:
+                  - name: HOTFIX_MODE
+                    value: "true"
+                  - name: HOTFIX_ID
+                    value: "${{ github.event.inputs.issue-id }}"
+          EOF
+
+      - name: Run hotfix validation
+        run: |
+          # Wait for deployment
+          kubectl wait --for=condition=available --timeout=300s deployment/${{ matrix.service }} -n hotfix-${{ github.event.inputs.issue-id }}
+          
+          # Run validation tests
+          ./scripts/hotfix/validate-hotfix.sh ${{ github.event.inputs.issue-id }}
+
+  # Job 6: Production Deployment Approval
+  production-approval:
+    name: Production Hotfix Approval
+    runs-on: ubuntu-latest
+    needs: deploy-hotfix-env
+    environment:
+      name: production-hotfix
+    steps:
+      - name: Notify on-call team
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              text: "🚨 *Hotfix Ready for Production Deployment*",
+              attachments: [{
+                color: "${{ github.event.inputs.severity == 'critical' && 'danger' || 'warning' }}",
+                fields: [
+                  { title: "Issue ID", value: "${{ github.event.inputs.issue-id }}", short: true },
+                  { title: "Severity", value: "${{ github.event.inputs.severity }}", short: true },
+                  { title: "Services", value: "${{ github.event.inputs.services }}", short: false },
+                  { title: "Validation", value: "✅ Passed in hotfix environment", short: false }
+                ]
+              }]
+            }
+          webhook_url: ${{ secrets.ONCALL_SLACK_WEBHOOK }}
+
+  # Job 7: Production Hotfix Deployment
+  deploy-production:
+    name: Deploy Hotfix to Production
+    runs-on: ubuntu-latest
+    needs: [prepare-hotfix, production-approval]
+    environment:
+      name: production
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.prepare-hotfix.outputs.services) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name austa-care-production --region us-east-1
+
+      - name: Deploy hotfix with canary
+        run: |
+          # Deploy canary version (10% traffic)
+          kubectl set image deployment/${{ matrix.service }} \
+            ${{ matrix.service }}=ghcr.io/${{ github.repository }}/${{ matrix.service }}:hotfix-${{ github.event.inputs.issue-id }} \
+            -n production
+          
+          # Update service to route 10% traffic to canary
+          kubectl apply -f - <<EOF
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: ${{ matrix.service }}-canary
+            namespace: production
+            annotations:
+              service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
+              nginx.ingress.kubernetes.io/canary: "true"
+              nginx.ingress.kubernetes.io/canary-weight: "10"
+          spec:
+            selector:
+              app: ${{ matrix.service }}
+              version: hotfix-${{ github.event.inputs.issue-id }}
+            ports:
+            - port: 80
+              targetPort: 3000
+          EOF
+
+      - name: Monitor canary deployment
+        run: |
+          # Monitor error rates and performance
+          ./scripts/monitor-canary.sh ${{ matrix.service }} 300  # 5 minutes
+          
+          # Check error rate threshold
+          ERROR_RATE=$(./scripts/get-error-rate.sh ${{ matrix.service }})
+          if (( $(echo "$ERROR_RATE > 1.0" | bc -l) )); then
+            echo "Error rate too high: $ERROR_RATE%"
+            exit 1
+          fi
+
+      - name: Promote to full deployment
+        run: |
+          # If canary is successful, roll out to 100%
+          kubectl patch service ${{ matrix.service }} -n production -p '
+          {
+            "metadata": {
+              "annotations": {
+                "nginx.ingress.kubernetes.io/canary-weight": "100"
+              }
+            }
+          }'
+          
+          # Scale deployment
+          kubectl scale deployment/${{ matrix.service }} --replicas=5 -n production
+
+  # Job 8: Post-Deployment Validation
+  validate-hotfix:
+    name: Validate Production Hotfix
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run production smoke tests
+        run: |
+          ./scripts/smoke-tests.sh https://api.austa-care.com --critical-only
+
+      - name: Check system health
+        run: |
+          # Monitor system health for 10 minutes
+          ./scripts/monitor-health.sh 600
+
+      - name: Generate hotfix report
+        run: |
+          ./scripts/hotfix/generate-report.sh \
+            --issue-id "${{ github.event.inputs.issue-id }}" \
+            --severity "${{ github.event.inputs.severity }}" \
+            --services "${{ github.event.inputs.services }}" \
+            --version "${{ github.event.inputs.target-version }}"
+
+      - name: Update status page
+        run: |
+          # Update public status page
+          curl -X POST https://status.austa-care.com/api/incidents \
+            -H "Authorization: Bearer ${{ secrets.STATUSPAGE_TOKEN }}" \
+            -d '{
+              "incident": {
+                "name": "Issue ${{ github.event.inputs.issue-id }} - Resolved",
+                "status": "resolved",
+                "impact": "${{ github.event.inputs.severity }}",
+                "message": "The issue has been resolved with a hotfix."
+              }
+            }'
+
+  # Job 9: Cleanup and Merge
+  cleanup:
+    name: Cleanup Hotfix
+    runs-on: ubuntu-latest
+    needs: validate-hotfix
+    if: success()
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Merge hotfix to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Merge hotfix branch
+          git merge origin/${{ env.HOTFIX_BRANCH }} --no-ff -m "Merge hotfix ${{ github.event.inputs.issue-id }}"
+          git push origin main
+
+      - name: Tag hotfix release
+        run: |
+          # Create hotfix tag
+          git tag -a "v${{ github.event.inputs.target-version }}-hotfix-${{ github.event.inputs.issue-id }}" \
+            -m "Hotfix for issue ${{ github.event.inputs.issue-id }}"
+          git push origin --tags
+
+      - name: Close hotfix PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Find and merge the hotfix PR
+            const prs = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${context.payload.inputs['hotfix-branch']}`,
+              state: 'open'
+            });
+            
+            if (prs.data.length > 0) {
+              await github.rest.pulls.merge({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prs.data[0].number,
+                merge_method: 'squash'
+              });
+            }
+
+      - name: Cleanup hotfix environment
+        run: |
+          kubectl delete namespace hotfix-${{ github.event.inputs.issue-id }} || true

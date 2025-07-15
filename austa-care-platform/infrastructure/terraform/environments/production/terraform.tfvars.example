@@ -1,0 +1,104 @@
+# Production Environment Variables
+# Copy this file to terraform.tfvars and update with actual values
+
+# General Configuration
+project_name = "austa-care"
+environment  = "production"
+aws_region   = "us-east-1"
+
+# Networking Configuration
+vpc_cidr = "10.0.0.0/16"
+availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c"]
+
+public_subnet_cidrs = [
+  "10.0.1.0/24",  # us-east-1a
+  "10.0.2.0/24",  # us-east-1b
+  "10.0.3.0/24"   # us-east-1c
+]
+
+private_subnet_cidrs = [
+  "10.0.11.0/24", # us-east-1a
+  "10.0.12.0/24", # us-east-1b
+  "10.0.13.0/24"  # us-east-1c
+]
+
+database_subnet_cidrs = [
+  "10.0.21.0/24", # us-east-1a
+  "10.0.22.0/24", # us-east-1b
+  "10.0.23.0/24"  # us-east-1c
+]
+
+# EKS Configuration
+eks_cluster_version = "1.28"
+eks_node_groups = {
+  general = {
+    instance_types = ["m5.xlarge", "m5a.xlarge"]
+    min_size       = 3
+    max_size       = 10
+    desired_size   = 3
+    disk_size      = 100
+  }
+  spot = {
+    instance_types = ["m5.large", "m5a.large", "m5n.large"]
+    min_size       = 0
+    max_size       = 20
+    desired_size   = 2
+    disk_size      = 50
+    capacity_type  = "SPOT"
+  }
+}
+
+# Database Configuration
+rds_instance_class      = "db.r6g.xlarge"
+rds_allocated_storage   = 100
+rds_engine_version      = "14.9"
+rds_backup_retention    = 35
+rds_multi_az           = true
+rds_deletion_protection = true
+
+# Redis Configuration
+redis_node_type         = "cache.r6g.large"
+redis_num_cache_nodes   = 3
+redis_engine_version    = "7.0"
+redis_automatic_failover = true
+
+# DocumentDB Configuration
+docdb_instance_class    = "db.r6gd.xlarge"
+docdb_instance_count    = 3
+docdb_backup_retention  = 35
+
+# Domain Configuration
+domain_name = "austa.com.br"
+subdomain   = "api"
+
+# Monitoring Configuration
+enable_monitoring       = true
+enable_logging         = true
+log_retention_days     = 90
+enable_performance_insights = true
+performance_insights_retention = 7
+
+# Backup Configuration
+backup_schedule = "cron(0 5 ? * * *)"  # Daily at 5 AM UTC
+backup_retention_days = 35
+
+# Security Configuration
+enable_waf            = true
+enable_shield         = true
+enable_guardduty      = true
+enable_security_hub   = true
+enable_config         = true
+
+# Cost Optimization
+enable_spot_instances = true
+enable_savings_plans  = false  # Set to true after analysis
+
+# Tags
+tags = {
+  Project     = "AUSTA Care Platform"
+  Environment = "Production"
+  ManagedBy   = "Terraform"
+  Owner       = "DevOps Team"
+  CostCenter  = "Engineering"
+  Compliance  = "LGPD,HIPAA"
+}

@@ -1,0 +1,237 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: critical-alerts
+  namespace: monitoring
+  labels:
+    prometheus: kube-prometheus
+    role: alert-rules
+spec:
+  groups:
+  - name: austa.critical
+    interval: 30s
+    rules:
+    # API Performance Alerts
+    - alert: HighAPIResponseTime
+      expr: |
+        histogram_quantile(0.95,
+          sum(rate(http_request_duration_seconds_bucket{job="backend-api"}[5m])) 
+          by (le, method, route)
+        ) > 3
+      for: 5m
+      labels:
+        severity: critical
+        team: platform
+        component: api
+      annotations:
+        summary: "High API response time detected"
+        description: "P95 response time for {{ $labels.method }} {{ $labels.route }} is {{ $value }}s (threshold: 3s)"
+        runbook_url: "https://wiki.austa.com/runbooks/high-api-response-time"
+        
+    - alert: HighErrorRate
+      expr: |
+        (sum(rate(http_requests_total{status=~"5.."}[5m])) by (service))
+        /
+        (sum(rate(http_requests_total[5m])) by (service))
+        > 0.01
+      for: 5m
+      labels:
+        severity: critical
+        team: platform
+        component: api
+      annotations:
+        summary: "High error rate detected"
+        description: "Service {{ $labels.service }} has error rate of {{ $value | humanizePercentage }} (threshold: 1%)"
+        runbook_url: "https://wiki.austa.com/runbooks/high-error-rate"
+        
+    # WhatsApp Integration Alerts
+    - alert: WhatsAppWebhookFailure
+      expr: |
+        rate(whatsapp_webhook_failures_total[5m]) > 0.1
+      for: 5m
+      labels:
+        severity: critical
+        team: platform
+        component: whatsapp
+      annotations:
+        summary: "WhatsApp webhook failures detected"
+        description: "WhatsApp webhook is failing at {{ $value }} requests/second"
+        runbook_url: "https://wiki.austa.com/runbooks/whatsapp-webhook-failure"
+        
+    - alert: WhatsAppAPIRateLimit
+      expr: |
+        whatsapp_api_rate_limit_remaining < 100
+      for: 1m
+      labels:
+        severity: warning
+        team: platform
+        component: whatsapp
+      annotations:
+        summary: "WhatsApp API rate limit approaching"
+        description: "Only {{ $value }} WhatsApp API calls remaining in current window"
+        runbook_url: "https://wiki.austa.com/runbooks/whatsapp-rate-limit"
+        
+    # Database Alerts
+    - alert: DatabaseConnectionFailure
+      expr: |
+        up{job="postgres-exporter"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        team: database
+        component: postgresql
+      annotations:
+        summary: "Database connection failure"
+        description: "PostgreSQL instance {{ $labels.instance }} is down"
+        runbook_url: "https://wiki.austa.com/runbooks/database-connection-failure"
+        
+    - alert: DatabaseHighConnections
+      expr: |
+        pg_stat_database_numbackends{datname="austa_care"} 
+        / 
+        pg_settings_max_connections 
+        > 0.8
+      for: 5m
+      labels:
+        severity: warning
+        team: database
+        component: postgresql
+      annotations:
+        summary: "Database connection pool near limit"
+        description: "Database using {{ $value | humanizePercentage }} of max connections"
+        runbook_url: "https://wiki.austa.com/runbooks/database-high-connections"
+        
+    - alert: DatabaseSlowQueries
+      expr: |
+        rate(pg_stat_statements_mean_time_seconds[5m]) > 1
+      for: 5m
+      labels:
+        severity: warning
+        team: database
+        component: postgresql
+      annotations:
+        summary: "Database slow queries detected"
+        description: "Average query time is {{ $value }}s (threshold: 1s)"
+        runbook_url: "https://wiki.austa.com/runbooks/database-slow-queries"
+        
+    # Kubernetes Alerts
+    - alert: PodCrashLooping
+      expr: |
+        rate(kube_pod_container_status_restarts_total{namespace="production"}[15m]) > 0
+      for: 5m
+      labels:
+        severity: critical
+        team: platform
+        component: kubernetes
+      annotations:
+        summary: "Pod crash looping"
+        description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is crash looping"
+        runbook_url: "https://wiki.austa.com/runbooks/pod-crash-looping"
+        
+    - alert: HighMemoryUsage
+      expr: |
+        (
+          container_memory_working_set_bytes{namespace="production"}
+          /
+          container_spec_memory_limit_bytes{namespace="production"}
+        ) > 0.9
+      for: 5m
+      labels:
+        severity: warning
+        team: platform
+        component: kubernetes
+      annotations:
+        summary: "High memory usage"
+        description: "Container {{ $labels.namespace }}/{{ $labels.pod }}/{{ $labels.container }} memory usage is {{ $value | humanizePercentage }}"
+        runbook_url: "https://wiki.austa.com/runbooks/high-memory-usage"
+        
+    - alert: PVCSpaceRunningLow
+      expr: |
+        (
+          kubelet_volume_stats_available_bytes
+          /
+          kubelet_volume_stats_capacity_bytes
+        ) < 0.1
+      for: 5m
+      labels:
+        severity: warning
+        team: platform
+        component: storage
+      annotations:
+        summary: "PVC space running low"
+        description: "PVC {{ $labels.persistentvolumeclaim }} in namespace {{ $labels.namespace }} has only {{ $value | humanizePercentage }} space left"
+        runbook_url: "https://wiki.austa.com/runbooks/pvc-space-low"
+        
+    # Node Alerts
+    - alert: NodeNotReady
+      expr: |
+        kube_node_status_condition{condition="Ready",status="true"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        team: infrastructure
+        component: nodes
+      annotations:
+        summary: "Kubernetes node not ready"
+        description: "Node {{ $labels.node }} has been unready for more than 5 minutes"
+        runbook_url: "https://wiki.austa.com/runbooks/node-not-ready"
+        
+    - alert: NodeDiskPressure
+      expr: |
+        kube_node_status_condition{condition="DiskPressure",status="true"} == 1
+      for: 5m
+      labels:
+        severity: warning
+        team: infrastructure
+        component: nodes
+      annotations:
+        summary: "Node disk pressure"
+        description: "Node {{ $labels.node }} is under disk pressure"
+        runbook_url: "https://wiki.austa.com/runbooks/node-disk-pressure"
+        
+    # Certificate Alerts
+    - alert: CertificateExpiringSoon
+      expr: |
+        certmanager_certificate_expiration_timestamp_seconds - time() < 7 * 24 * 60 * 60
+      for: 1h
+      labels:
+        severity: warning
+        team: security
+        component: certificates
+      annotations:
+        summary: "Certificate expiring soon"
+        description: "Certificate {{ $labels.namespace }}/{{ $labels.name }} expires in {{ $value | humanizeDuration }}"
+        runbook_url: "https://wiki.austa.com/runbooks/certificate-expiring"
+        
+    # Business Metrics Alerts
+    - alert: LowOnboardingCompletion
+      expr: |
+        rate(onboarding_completed_total[1h]) 
+        / 
+        rate(onboarding_started_total[1h]) 
+        < 0.7
+      for: 30m
+      labels:
+        severity: warning
+        team: product
+        component: onboarding
+      annotations:
+        summary: "Low onboarding completion rate"
+        description: "Onboarding completion rate is {{ $value | humanizePercentage }} (threshold: 70%)"
+        runbook_url: "https://wiki.austa.com/runbooks/low-onboarding-completion"
+        
+    - alert: HighAuthorizationProcessingTime
+      expr: |
+        histogram_quantile(0.95,
+          sum(rate(authorization_processing_duration_seconds_bucket[5m])) 
+          by (le)
+        ) > 30
+      for: 5m
+      labels:
+        severity: critical
+        team: platform
+        component: authorization
+      annotations:
+        summary: "High authorization processing time"
+        description: "P95 authorization processing time is {{ $value }}s (threshold: 30s)"
+        runbook_url: "https://wiki.austa.com/runbooks/high-authorization-time"

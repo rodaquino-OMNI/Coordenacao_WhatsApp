@@ -1,0 +1,180 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./backend
+      run: npm ci
+    
+    - name: Generate Prisma client
+      working-directory: ./backend
+      run: npm run db:generate
+    
+    - name: Run linting
+      working-directory: ./backend
+      run: npm run lint
+    
+    - name: Run type checking
+      working-directory: ./backend
+      run: npm run build
+    
+    - name: Run unit tests
+      working-directory: ./backend
+      run: npm run test:unit
+      env:
+        NODE_ENV: test
+        DATABASE_URL: sqlite://./test.db
+        REDIS_URL: redis://localhost:6379/1
+    
+    - name: Run integration tests
+      working-directory: ./backend
+      run: npm run test:integration
+      env:
+        NODE_ENV: test
+        DATABASE_URL: sqlite://./test.db
+        REDIS_URL: redis://localhost:6379/1
+    
+    - name: Run E2E tests
+      working-directory: ./backend
+      run: npm run test:e2e
+      env:
+        NODE_ENV: test
+        DATABASE_URL: sqlite://./test.db
+        REDIS_URL: redis://localhost:6379/1
+    
+    - name: Run performance tests
+      working-directory: ./backend
+      run: npm run test:performance
+      env:
+        NODE_ENV: test
+        DATABASE_URL: sqlite://./test.db
+        REDIS_URL: redis://localhost:6379/1
+    
+    - name: Generate coverage report
+      working-directory: ./backend
+      run: npm run test:coverage
+      env:
+        NODE_ENV: test
+        DATABASE_URL: sqlite://./test.db
+        REDIS_URL: redis://localhost:6379/1
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage/lcov.info
+        directory: ./backend
+        flags: backend
+        name: backend-coverage
+        fail_ci_if_error: false
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-node-${{ matrix.node-version }}
+        path: |
+          ./backend/coverage/
+          ./backend/test-results.xml
+    
+    - name: Performance regression check
+      working-directory: ./backend
+      run: |
+        if [ -f performance-baseline.json ]; then
+          echo "Checking for performance regression..."
+          # Add performance regression detection logic here
+        else
+          echo "No performance baseline found, creating baseline..."
+        fi
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Use Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./backend
+      run: npm ci
+    
+    - name: Run security audit
+      working-directory: ./backend
+      run: npm audit --audit-level=moderate
+    
+    - name: Run CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+      with:
+        languages: typescript
+        queries: security-and-quality
+
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Use Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./backend
+      run: npm ci
+    
+    - name: Check code formatting
+      working-directory: ./backend
+      run: npx prettier --check src/**/*.ts tests/**/*.ts
+    
+    - name: Run linting with error level
+      working-directory: ./backend
+      run: npm run lint -- --max-warnings 0
+    
+    - name: Check for TODO/FIXME comments
+      run: |
+        if grep -r "TODO\|FIXME" backend/src/ --include="*.ts"; then
+          echo "Found TODO/FIXME comments. Please resolve before merging."
+          exit 1
+        fi

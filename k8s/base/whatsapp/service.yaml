@@ -1,0 +1,24 @@
+# WhatsApp Webhook Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: austa-whatsapp-webhook
+  namespace: austa-care
+  labels:
+    app: austa-whatsapp
+    component: webhook
+spec:
+  type: ClusterIP
+  selector:
+    app: austa-whatsapp
+    component: webhook
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 9091
+    targetPort: metrics
+    protocol: TCP
+  sessionAffinity: None

@@ -1,0 +1,63 @@
+# Example Terraform Variables for Production Environment
+# Copy this file to terraform.tfvars and update with actual values
+
+# Alert email addresses
+alert_email_addresses = [
+  "ops@austacare.com",
+  "security@austacare.com",
+  "devops@austacare.com"
+]
+
+# Domain configuration
+domain_name = "austacare.com"
+
+# Database configuration
+db_instance_class           = "db.r6i.xlarge"
+db_allocated_storage        = 500
+postgres_version            = "14.9"
+multi_az                    = true
+backup_retention_period     = 30
+deletion_protection         = true
+create_read_replica         = true
+read_replica_instance_class = "db.r6i.large"
+
+# Redis configuration
+redis_node_type                = "cache.r6g.large"
+redis_num_cache_clusters       = 3
+redis_snapshot_retention_limit = 7
+
+# DocumentDB configuration
+create_documentdb         = true
+documentdb_instance_class = "db.r6g.large"
+documentdb_instance_count = 3
+
+# EKS configuration
+kubernetes_version = "1.28"
+node_volume_size   = 100
+
+# Monitoring thresholds
+eks_node_cpu_threshold       = 80
+eks_node_memory_threshold    = 80
+rds_cpu_threshold            = 75
+rds_connection_threshold     = 400
+rds_storage_threshold_bytes  = 53687091200  # 50GB
+alb_response_time_threshold  = 1
+alb_5xx_threshold            = 10
+redis_cpu_threshold          = 75
+redis_memory_threshold       = 80
+app_error_rate_threshold     = 5
+
+# WAF configuration
+waf_rate_limit    = 2000
+blocked_countries = []
+
+# Storage configuration
+backup_retention_days = 365
+log_retention_days    = 90
+
+# CloudFront configuration
+cloudfront_price_class = "PriceClass_100"
+cors_allowed_origins = [
+  "https://austacare.com",
+  "https://www.austacare.com"
+]

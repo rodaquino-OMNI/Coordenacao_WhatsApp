@@ -1,0 +1,27 @@
+# Frontend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: austa-frontend-pwa
+  namespace: austa-care
+  labels:
+    app: austa-frontend
+    component: pwa
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:region:account-id:certificate/cert-id"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "https"
+spec:
+  type: ClusterIP
+  selector:
+    app: austa-frontend
+    component: pwa
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 3600

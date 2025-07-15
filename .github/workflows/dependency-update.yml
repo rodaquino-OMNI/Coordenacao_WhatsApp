@@ -1,0 +1,421 @@
+name: Dependency Update Automation
+
+on:
+  schedule:
+    # Run every Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      update-type:
+        description: 'Type of updates to perform'
+        required: true
+        type: choice
+        options:
+          - security
+          - minor
+          - major
+          - all
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  # Job 1: Analyze Dependencies
+  analyze-dependencies:
+    name: Analyze Current Dependencies
+    runs-on: ubuntu-latest
+    outputs:
+      update-strategy: ${{ steps.strategy.outputs.strategy }}
+      services: ${{ steps.services.outputs.services }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Identify services
+        id: services
+        run: |
+          SERVICES=$(find . -name "package.json" -not -path "./node_modules/*" -not -path "./.github/*" | xargs dirname | jq -R -s -c 'split("\n")[:-1]')
+          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+
+      - name: Determine update strategy
+        id: strategy
+        run: |
+          if [ "${{ github.event.inputs.update-type }}" ]; then
+            echo "strategy=${{ github.event.inputs.update-type }}" >> $GITHUB_OUTPUT
+          else
+            # Default to security updates for scheduled runs
+            echo "strategy=security" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate dependency report
+        run: |
+          mkdir -p reports
+          
+          for service in $(echo '${{ steps.services.outputs.services }}' | jq -r '.[]'); do
+            cd $service
+            
+            # Generate outdated package list
+            npm outdated --json > ../reports/$(basename $service)-outdated.json || true
+            
+            # Generate security audit
+            npm audit --json > ../reports/$(basename $service)-audit.json || true
+            
+            cd ..
+          done
+
+      - name: Upload dependency reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: dependency-reports
+          path: reports/
+
+  # Job 2: Security Updates
+  security-updates:
+    name: Security Dependency Updates
+    runs-on: ubuntu-latest
+    needs: analyze-dependencies
+    if: needs.analyze-dependencies.outputs.update-strategy == 'security' || needs.analyze-dependencies.outputs.update-strategy == 'all'
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.analyze-dependencies.outputs.services) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: '${{ matrix.service }}/package-lock.json'
+
+      - name: Update security vulnerabilities
+        working-directory: ${{ matrix.service }}
+        run: |
+          # Try to fix security vulnerabilities automatically
+          npm audit fix --force
+          
+          # Update package-lock.json
+          npm install
+
+      - name: Run tests
+        working-directory: ${{ matrix.service }}
+        continue-on-error: true
+        run: |
+          npm test
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "fix(deps): security updates for ${{ matrix.service }}"
+          fi
+
+  # Job 3: Minor Updates
+  minor-updates:
+    name: Minor Version Updates
+    runs-on: ubuntu-latest
+    needs: analyze-dependencies
+    if: needs.analyze-dependencies.outputs.update-strategy == 'minor' || needs.analyze-dependencies.outputs.update-strategy == 'all'
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.analyze-dependencies.outputs.services) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Update to latest minor versions
+        working-directory: ${{ matrix.service }}
+        run: |
+          # Install npm-check-updates
+          npm install -g npm-check-updates
+          
+          # Update to latest minor versions
+          ncu -u --target minor
+          
+          # Install updated dependencies
+          npm install
+
+      - name: Run tests
+        working-directory: ${{ matrix.service }}
+        continue-on-error: true
+        run: |
+          npm test
+
+      - name: Build check
+        working-directory: ${{ matrix.service }}
+        continue-on-error: true
+        run: |
+          npm run build
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "chore(deps): minor version updates for ${{ matrix.service }}"
+          fi
+
+  # Job 4: Major Updates
+  major-updates:
+    name: Major Version Updates
+    runs-on: ubuntu-latest
+    needs: analyze-dependencies
+    if: needs.analyze-dependencies.outputs.update-strategy == 'major' || needs.analyze-dependencies.outputs.update-strategy == 'all'
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.analyze-dependencies.outputs.services) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Identify major updates
+        id: major-updates
+        working-directory: ${{ matrix.service }}
+        run: |
+          npm install -g npm-check-updates
+          
+          # Get list of major updates available
+          MAJOR_UPDATES=$(ncu --jsonUpgraded --target greatest | jq -r 'to_entries | map(select(.value | test("\\^[0-9]+\\.[0-9]+\\.[0-9]+$") | not)) | from_entries')
+          echo "updates=$MAJOR_UPDATES" >> $GITHUB_OUTPUT
+
+      - name: Update major versions selectively
+        working-directory: ${{ matrix.service }}
+        run: |
+          # Update only packages that are likely safe for major updates
+          SAFE_PACKAGES=("eslint" "prettier" "jest" "@types/*" "webpack" "babel")
+          
+          for package in "${SAFE_PACKAGES[@]}"; do
+            ncu -u "$package*" --target greatest
+          done
+          
+          npm install
+
+      - name: Run comprehensive tests
+        working-directory: ${{ matrix.service }}
+        continue-on-error: true
+        run: |
+          npm test
+          npm run lint
+          npm run build
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "chore(deps): major version updates for ${{ matrix.service }}"
+          fi
+
+  # Job 5: Create Pull Requests
+  create-prs:
+    name: Create Update PRs
+    runs-on: ubuntu-latest
+    needs: [analyze-dependencies, security-updates, minor-updates, major-updates]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download dependency reports
+        uses: actions/download-artifact@v3
+        with:
+          name: dependency-reports
+          path: reports/
+
+      - name: Create security updates PR
+        if: needs.security-updates.result == 'success'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: automated-deps/security-updates
+          title: '🔐 Security Dependency Updates'
+          body: |
+            ## Security Dependency Updates
+            
+            This PR contains automated security updates based on npm audit.
+            
+            ### Security Vulnerabilities Fixed:
+            ```
+            $(cat reports/*-audit.json | jq -s 'map(.vulnerabilities) | add | to_entries | map("\(.key): \(.value) vulnerabilities") | join("\n")')
+            ```
+            
+            ### Updated Services:
+            - ${{ join(fromJson(needs.analyze-dependencies.outputs.services), '\n- ') }}
+            
+            ### Testing:
+            - [ ] All unit tests pass
+            - [ ] Integration tests pass
+            - [ ] No breaking changes detected
+            
+            Please review the changes and ensure all tests pass before merging.
+          commit-message: 'fix(deps): automated security updates'
+          labels: |
+            dependencies
+            security
+            automated
+
+      - name: Create minor updates PR
+        if: needs.minor-updates.result == 'success'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: automated-deps/minor-updates
+          title: '📦 Minor Dependency Updates'
+          body: |
+            ## Minor Dependency Updates
+            
+            This PR contains automated minor version updates for dependencies.
+            
+            ### Update Summary:
+            ```
+            $(cat reports/*-outdated.json | jq -s 'map(to_entries) | flatten | group_by(.key) | map({package: .[0].key, current: .[0].value.current, wanted: .[0].value.wanted, latest: .[0].value.latest}) | .[:10]')
+            ```
+            
+            ### Updated Services:
+            - ${{ join(fromJson(needs.analyze-dependencies.outputs.services), '\n- ') }}
+            
+            ### Risk Assessment:
+            - **Risk Level**: Low (minor version updates)
+            - **Breaking Changes**: Unlikely
+            - **Testing Required**: Standard regression testing
+            
+            Please ensure all tests pass before merging.
+          commit-message: 'chore(deps): automated minor version updates'
+          labels: |
+            dependencies
+            minor-update
+            automated
+
+      - name: Create major updates PR
+        if: needs.major-updates.result == 'success'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: automated-deps/major-updates
+          title: '🚀 Major Dependency Updates'
+          body: |
+            ## Major Dependency Updates
+            
+            This PR contains automated major version updates for select dependencies.
+            
+            ### ⚠️ REQUIRES CAREFUL REVIEW ⚠️
+            
+            Major version updates may contain breaking changes. Please review the changelog for each updated package.
+            
+            ### Updated Packages:
+            Only development and build tool dependencies have been updated to minimize risk.
+            
+            ### Updated Services:
+            - ${{ join(fromJson(needs.analyze-dependencies.outputs.services), '\n- ') }}
+            
+            ### Required Actions:
+            - [ ] Review changelog for each major update
+            - [ ] Run full test suite
+            - [ ] Test build process
+            - [ ] Verify no runtime dependencies were affected
+            - [ ] Update code if breaking changes require it
+            
+            **DO NOT MERGE** without thorough testing and review.
+          commit-message: 'chore(deps): automated major version updates'
+          labels: |
+            dependencies
+            major-update
+            needs-review
+            automated
+
+  # Job 6: Dependency License Check
+  license-check:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+    needs: analyze-dependencies
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install license checker
+        run: npm install -g license-checker
+
+      - name: Check licenses
+        run: |
+          mkdir -p license-reports
+          
+          ALLOWED_LICENSES="MIT;Apache-2.0;BSD-3-Clause;BSD-2-Clause;ISC;CC0-1.0;Unlicense"
+          
+          for service in $(echo '${{ needs.analyze-dependencies.outputs.services }}' | jq -r '.[]'); do
+            cd $service
+            
+            # Generate license report
+            license-checker --json --out ../license-reports/$(basename $service)-licenses.json
+            
+            # Check for problematic licenses
+            license-checker --onlyAllow "$ALLOWED_LICENSES" --failOn "GPL;LGPL;AGPL" || echo "License issues in $service"
+            
+            cd ..
+          done
+
+      - name: Upload license reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: license-reports
+          path: license-reports/
+
+      - name: Create license issue if needed
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reports = fs.readdirSync('license-reports');
+            let hasIssues = false;
+            
+            for (const report of reports) {
+              const content = JSON.parse(fs.readFileSync(`license-reports/${report}`));
+              const problematic = Object.entries(content).filter(([_, info]) => 
+                info.licenses && (info.licenses.includes('GPL') || info.licenses.includes('LGPL'))
+              );
+              
+              if (problematic.length > 0) {
+                hasIssues = true;
+              }
+            }
+            
+            if (hasIssues) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: 'License Compliance Issues Detected',
+                body: 'Dependency updates have introduced packages with incompatible licenses. Please review the license reports.',
+                labels: ['legal', 'dependencies', 'needs-attention']
+              });
+            }

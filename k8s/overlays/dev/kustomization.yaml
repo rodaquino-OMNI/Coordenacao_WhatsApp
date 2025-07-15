@@ -1,0 +1,92 @@
+# Development Environment Overlay
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: austa-care-dev
+
+bases:
+- ../../base
+
+namePrefix: dev-
+nameSuffix: ""
+
+commonLabels:
+  environment: development
+  
+commonAnnotations:
+  environment: development
+
+# Development-specific patches
+patchesStrategicMerge:
+- deployment-patches.yaml
+- service-patches.yaml
+
+# Development replicas
+replicas:
+- name: austa-backend-api
+  count: 1
+- name: austa-frontend-pwa
+  count: 1
+- name: austa-whatsapp-webhook
+  count: 1
+- name: austa-ml-inference
+  count: 1
+
+# Development images
+images:
+- name: austa-care/backend
+  newTag: dev-latest
+- name: austa-care/frontend
+  newTag: dev-latest
+- name: austa-care/whatsapp-webhook
+  newTag: dev-latest
+- name: austa-care/ml-inference
+  newTag: dev-latest
+
+# Development config
+configMapGenerator:
+- name: austa-frontend-config
+  behavior: merge
+  literals:
+  - whatsapp-widget-id=dev-widget-123
+- name: austa-ml-config
+  behavior: merge
+  literals:
+  - s3-model-bucket=austa-ml-models-dev
+
+# Development secrets
+secretGenerator:
+- name: austa-auth-secret
+  behavior: replace
+  literals:
+  - jwt-secret=dev-jwt-secret-change-me
+- name: austa-whatsapp-secret
+  behavior: replace
+  literals:
+  - api-key=dev-whatsapp-api-key
+  - verify-token=dev-verify-token
+  - access-token=dev-access-token
+  - phone-number-id=dev-phone-number
+
+# Patch to reduce resource requests for dev
+patches:
+- target:
+    kind: Deployment
+    name: austa-backend-api
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/cpu
+      value: 50m
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/memory
+      value: 128Mi
+- target:
+    kind: HorizontalPodAutoscaler
+    name: austa-backend-api-hpa
+  patch: |-
+    - op: replace
+      path: /spec/minReplicas
+      value: 1
+    - op: replace
+      path: /spec/maxReplicas
+      value: 3

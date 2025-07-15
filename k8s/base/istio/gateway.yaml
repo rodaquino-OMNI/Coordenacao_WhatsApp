@@ -1,0 +1,204 @@
+# Istio Gateway Configuration
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: austa-care-gateway
+  namespace: austa-care
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*.austacare.com"
+    tls:
+      httpsRedirect: true
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: austa-care-tls
+    hosts:
+    - "*.austacare.com"
+---
+# Virtual Service for Frontend
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: austa-frontend-vs
+  namespace: austa-care
+spec:
+  hosts:
+  - app.austacare.com
+  gateways:
+  - austa-care-gateway
+  http:
+  - match:
+    - uri:
+        prefix: "/"
+    route:
+    - destination:
+        host: austa-frontend-pwa
+        port:
+          number: 80
+      weight: 100
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+      retryOn: 5xx,reset,connect-failure,refused-stream
+---
+# Virtual Service for Backend API
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: austa-backend-vs
+  namespace: austa-care
+spec:
+  hosts:
+  - api.austacare.com
+  gateways:
+  - austa-care-gateway
+  http:
+  # WhatsApp webhook route
+  - match:
+    - uri:
+        exact: "/webhook/whatsapp"
+    route:
+    - destination:
+        host: austa-whatsapp-webhook
+        port:
+          number: 80
+    timeout: 10s
+    retries:
+      attempts: 2
+      perTryTimeout: 5s
+  # ML inference routes
+  - match:
+    - uri:
+        prefix: "/api/v1/ml/"
+    route:
+    - destination:
+        host: austa-ml-inference
+        port:
+          number: 80
+    timeout: 60s
+  # Default backend routes
+  - match:
+    - uri:
+        prefix: "/"
+    route:
+    - destination:
+        host: austa-backend-api
+        port:
+          number: 80
+      weight: 100
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+      retryOn: 5xx,reset,connect-failure,refused-stream
+    fault:
+      delay:
+        percentage:
+          value: 0.1
+        fixedDelay: 5s
+---
+# Destination Rules
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: austa-backend-dr
+  namespace: austa-care
+spec:
+  host: austa-backend-api
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 2
+        h2UpgradePolicy: UPGRADE
+    loadBalancer:
+      consistentHash:
+        httpCookie:
+          name: "session-affinity"
+          ttl: 3600s
+    outlierDetection:
+      consecutiveErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 30
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+---
+# Service Entry for External Database
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: postgres-external
+  namespace: austa-care
+spec:
+  hosts:
+  - austa-care-prod.cluster-xxxxx.us-east-1.rds.amazonaws.com
+  ports:
+  - number: 5432
+    name: postgres
+    protocol: TCP
+  location: MESH_EXTERNAL
+  resolution: DNS
+---
+# PeerAuthentication for mTLS
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: austa-care
+spec:
+  mtls:
+    mode: STRICT
+---
+# Authorization Policy
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: frontend-authz
+  namespace: austa-care
+spec:
+  selector:
+    matchLabels:
+      app: austa-frontend
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+---
+# Request Authentication
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: jwt-auth
+  namespace: austa-care
+spec:
+  selector:
+    matchLabels:
+      app: austa-backend
+  jwtRules:
+  - issuer: "https://auth.austacare.com"
+    jwksUri: "https://auth.austacare.com/.well-known/jwks.json"
+    audiences:
+    - "austa-care-api"

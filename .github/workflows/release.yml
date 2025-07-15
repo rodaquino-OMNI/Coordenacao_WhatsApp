@@ -1,0 +1,407 @@
+name: Release Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.2.3)'
+        required: false
+        type: string
+      release-type:
+        description: 'Release type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - prerelease
+
+permissions:
+  contents: write
+  packages: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  # Job 1: Prepare Release
+  prepare-release:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      changelog: ${{ steps.changelog.outputs.changelog }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install release tools
+        run: |
+          npm install -g semantic-release @semantic-release/changelog @semantic-release/git
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            # Use semantic-release to determine next version
+            npx semantic-release --dry-run --no-ci > release-notes.txt
+            VERSION=$(grep -oP 'Published release \K[0-9]+\.[0-9]+\.[0-9]+' release-notes.txt || echo "")
+            if [ -z "$VERSION" ]; then
+              # Fallback to manual versioning
+              CURRENT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
+              VERSION=$(npx semver -i ${{ github.event.inputs.release-type || 'patch' }} $CURRENT_VERSION)
+            fi
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Generate changelog for this version
+          npx conventional-changelog -p angular -i CHANGELOG.md -s -r 1
+          CHANGELOG=$(cat CHANGELOG.md | sed -n '/^##/,/^##/p' | head -n -1)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Update version files
+        run: |
+          # Update package.json files
+          for service in patient-service appointment-service notification-service frontend; do
+            jq --arg v "${{ steps.version.outputs.version }}" '.version = $v' $service/package.json > tmp.json && mv tmp.json $service/package.json
+          done
+          
+          # Update Helm charts
+          for chart in infrastructure/helm/*; do
+            if [ -f "$chart/Chart.yaml" ]; then
+              sed -i "s/^version:.*/version: ${{ steps.version.outputs.version }}/" "$chart/Chart.yaml"
+              sed -i "s/^appVersion:.*/appVersion: ${{ steps.version.outputs.version }}/" "$chart/Chart.yaml"
+            fi
+          done
+
+      - name: Commit version changes
+        run: |
+          git add .
+          git commit -m "chore(release): ${{ steps.version.outputs.version }}"
+          git push
+
+  # Job 2: Build Release Artifacts
+  build-release:
+    name: Build Release Artifacts
+    runs-on: ubuntu-latest
+    needs: prepare-release
+    strategy:
+      matrix:
+        service: [patient-service, appointment-service, notification-service, frontend]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push production image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.service }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/${{ matrix.service }}:${{ needs.prepare-release.outputs.version }}
+            ghcr.io/${{ github.repository }}/${{ matrix.service }}:latest
+          labels: |
+            org.opencontainers.image.version=${{ needs.prepare-release.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ needs.prepare-release.outputs.version }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: ghcr.io/${{ github.repository }}/${{ matrix.service }}:${{ needs.prepare-release.outputs.version }}
+          format: spdx-json
+          output-file: ${{ matrix.service }}-sbom.spdx.json
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v3
+        with:
+          name: sbom-${{ matrix.service }}
+          path: ${{ matrix.service }}-sbom.spdx.json
+
+  # Job 3: Package Helm Charts
+  package-helm:
+    name: Package Helm Charts
+    runs-on: ubuntu-latest
+    needs: [prepare-release, build-release]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.13.0'
+
+      - name: Package Helm charts
+        run: |
+          mkdir -p helm-packages
+          for chart in infrastructure/helm/*; do
+            if [ -d "$chart" ]; then
+              helm package "$chart" -d helm-packages/
+            fi
+          done
+
+      - name: Create Helm repository index
+        run: |
+          helm repo index helm-packages/ --url https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare-release.outputs.version }}
+
+      - name: Upload Helm packages
+        uses: actions/upload-artifact@v3
+        with:
+          name: helm-charts
+          path: helm-packages/
+
+  # Job 4: Deploy to Staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [prepare-release, build-release, package-helm]
+    environment:
+      name: staging
+      url: https://staging.austa-care.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name austa-care-staging --region us-east-1
+
+      - name: Deploy with ArgoCD
+        run: |
+          # Update ArgoCD application manifests
+          kubectl patch application austa-care-staging -n argocd --type merge -p '
+          {
+            "spec": {
+              "source": {
+                "targetRevision": "v${{ needs.prepare-release.outputs.version }}"
+              }
+            }
+          }'
+          
+          # Sync ArgoCD application
+          kubectl -n argocd exec deploy/argocd-server -- argocd app sync austa-care-staging --prune
+
+      - name: Wait for deployment
+        run: |
+          kubectl -n argocd exec deploy/argocd-server -- argocd app wait austa-care-staging --health --timeout 600
+
+      - name: Run smoke tests
+        run: |
+          # Run basic health checks
+          ./scripts/smoke-tests.sh https://staging-api.austa-care.com
+
+  # Job 5: Run E2E Tests on Staging
+  staging-e2e:
+    name: Staging E2E Tests
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install Playwright
+        working-directory: e2e-tests
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run E2E tests against staging
+        working-directory: e2e-tests
+        env:
+          BASE_URL: https://staging.austa-care.com
+          API_URL: https://staging-api.austa-care.com
+        run: |
+          npm run test:e2e:staging
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: staging-e2e-results
+          path: e2e-tests/test-results/
+
+  # Job 6: Deploy to Production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [prepare-release, build-release, package-helm, staging-e2e]
+    environment:
+      name: production
+      url: https://app.austa-care.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name austa-care-production --region us-east-1
+
+      - name: Blue-Green Deployment
+        run: |
+          # Create new green deployment
+          kubectl apply -f - <<EOF
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: austa-care-green
+            namespace: production
+          spec:
+            selector:
+              app: austa-care
+              version: v${{ needs.prepare-release.outputs.version }}
+            ports:
+            - port: 80
+              targetPort: 3000
+          EOF
+          
+          # Deploy green version
+          helm upgrade --install austa-care-green ./infrastructure/helm/austa-care \
+            --namespace production \
+            --set image.tag=v${{ needs.prepare-release.outputs.version }} \
+            --set deployment.strategy=blue-green \
+            --set deployment.color=green \
+            --wait
+
+          # Run health checks on green deployment
+          ./scripts/health-check.sh https://green.austa-care.com
+
+          # Switch traffic to green
+          kubectl patch service austa-care -n production -p '{"spec":{"selector":{"version":"v${{ needs.prepare-release.outputs.version }}"}}}'
+
+          # Monitor for 5 minutes
+          sleep 300
+
+          # If successful, remove blue deployment
+          kubectl delete deployment austa-care-blue -n production || true
+
+      - name: Update DNS
+        run: |
+          # Update Route53 records if needed
+          aws route53 change-resource-record-sets \
+            --hosted-zone-id ${{ secrets.ROUTE53_ZONE_ID }} \
+            --change-batch file://dns-update.json
+
+  # Job 7: Create GitHub Release
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [prepare-release, build-release, package-helm, deploy-production]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: release-artifacts/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.prepare-release.outputs.version }}
+          name: Release v${{ needs.prepare-release.outputs.version }}
+          body: |
+            ${{ needs.prepare-release.outputs.changelog }}
+            
+            ## Docker Images
+            - `ghcr.io/${{ github.repository }}/patient-service:${{ needs.prepare-release.outputs.version }}`
+            - `ghcr.io/${{ github.repository }}/appointment-service:${{ needs.prepare-release.outputs.version }}`
+            - `ghcr.io/${{ github.repository }}/notification-service:${{ needs.prepare-release.outputs.version }}`
+            - `ghcr.io/${{ github.repository }}/frontend:${{ needs.prepare-release.outputs.version }}`
+            
+            ## Deployment
+            - Staging: ✅ Deployed
+            - Production: ✅ Deployed
+          files: |
+            release-artifacts/helm-charts/*.tgz
+            release-artifacts/sbom-*/*.json
+          draft: false
+          prerelease: false
+
+  # Job 8: Post-Release Tasks
+  post-release:
+    name: Post-Release Tasks
+    runs-on: ubuntu-latest
+    needs: [prepare-release, create-release]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Notify teams
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          text: |
+            🚀 *AUSTA Care Platform v${{ needs.prepare-release.outputs.version }} Released!*
+            
+            • Production deployment completed successfully
+            • All tests passed
+            • Release notes: https://github.com/${{ github.repository }}/releases/tag/v${{ needs.prepare-release.outputs.version }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Update documentation
+        run: |
+          # Update API documentation
+          ./scripts/update-api-docs.sh v${{ needs.prepare-release.outputs.version }}
+
+      - name: Trigger monitoring alerts update
+        run: |
+          # Update monitoring thresholds for new version
+          curl -X POST https://monitoring.austa-care.com/api/alerts/update \
+            -H "Authorization: Bearer ${{ secrets.MONITORING_TOKEN }}" \
+            -d '{"version": "${{ needs.prepare-release.outputs.version }}"}'

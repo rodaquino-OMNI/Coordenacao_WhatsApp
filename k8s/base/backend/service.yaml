@@ -1,0 +1,46 @@
+# Backend API Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: austa-backend-api
+  namespace: austa-care
+  labels:
+    app: austa-backend
+    component: api
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:region:account-id:certificate/cert-id"
+spec:
+  type: ClusterIP
+  selector:
+    app: austa-backend
+    component: api
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+    protocol: TCP
+  sessionAffinity: None
+---
+# Headless Service for StatefulSet discovery
+apiVersion: v1
+kind: Service
+metadata:
+  name: austa-backend-headless
+  namespace: austa-care
+  labels:
+    app: austa-backend
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: austa-backend
+    component: api
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
