@@ -15,12 +15,6 @@ export * from './api-response.types';
 
 // Re-export commonly used types at top level
 export type {
-  // Branded IDs
-  UserId,
-  OrganizationId,
-  PatientId,
-  SessionId,
-  
   // Request types
   AuthenticatedRequest,
   TypedRequestHandler,
@@ -35,6 +29,72 @@ export type {
   QueryOptions
 } from './express.types';
 
+// Re-export additional branded types
+export type {
+  // All branded IDs
+  UserId,
+  OrganizationId,
+  PatientId,
+  SessionId,
+  ConversationId,
+  MessageId,
+  PractitionerId,
+  AuthorizationId,
+  DocumentId,
+  TenantId,
+  WorkflowId,
+  TaskId,
+  PhoneNumber,
+  Email,
+  CPF,
+  ProcedureCode,
+  DiagnosisCode,
+  FHIRResourceId,
+  FHIRReference
+} from './branded.types';
+
+// Re-export QuestionnaireResponse from questionnaire.types.ts
+export type {
+  QuestionnaireResponse,
+  MedicalQuestionnaire,
+  QuestionnaireQuestion
+} from '../questionnaire.types';
+
+// Re-export User types from user.types.ts
+export type {
+  User,
+  UserRole,
+  UserStatus,
+  UserProfile,
+  UserAuthData
+} from '../user.types';
+
+// Re-export Workflow types from workflow.types.ts
+export type {
+  WorkflowState,
+  WorkflowStatus,
+  WorkflowDefinition,
+  WorkflowInstance
+} from '../workflow.types';
+
+// Re-export TASY types from tasy-integration.types.ts
+export type {
+  TasyPatient,
+  TasyAuthorization,
+  TasyProcedure,
+  TasyPractitioner
+} from '../tasy-integration.types';
+
+// Re-export WhatsApp types from whatsapp.types.ts
+export type {
+  WhatsAppMessage,
+  WhatsAppConversation,
+  WhatsAppSession,
+  WhatsAppMessageType,
+  WhatsAppMessageStatus,
+  WhatsAppMessageContent
+} from '../whatsapp.types';
+
 export type {
   // API Response types
   APISuccessResponse,
@@ -45,6 +105,23 @@ export type {
   APIPartialResponse
 } from './api-response.types';
 
+// Re-export risk types from risk.types.ts
+export type {
+  CompoundRiskAnalysis,
+  TemporalRiskPattern,
+  PredictiveRiskModel,
+  InterventionOpportunity,
+  RiskMitigationStrategy,
+  AdvancedRiskAssessment,
+  CardiovascularRisk,
+  DiabetesRisk,
+  MentalHealthRisk,
+  RespiratoryRisk,
+  CompositeRisk,
+  RiskAssessment,
+  RiskFactor
+} from '../risk.types';
+
 export {
   // Response builders
   ResponseBuilder,
@@ -53,11 +130,6 @@ export {
   APIStatus,
   ErrorCode
 } from './api-response.types';
-
-export {
-  // API Response builder
-  APIResponse
-} from './express.types';
 
 // Type guard re-exports
 export {

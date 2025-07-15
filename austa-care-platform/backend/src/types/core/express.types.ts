@@ -122,62 +122,8 @@ export interface ValidationError {
   constraint?: string;
 }
 
-// API Response builder
-export class APIResponse {
-  static success<T>(data: T, metadata?: SuccessResponse<T>['metadata']): SuccessResponse<T> {
-    return {
-      success: true,
-      data,
-      metadata: {
-        timestamp: new Date().toISOString(),
-        ...metadata
-      }
-    };
-  }
-
-  static error(
-    code: string,
-    message: string,
-    details?: any,
-    statusCode: number = 500
-  ): ErrorResponse {
-    return {
-      error: {
-        code,
-        message,
-        details,
-        timestamp: new Date().toISOString()
-      }
-    };
-  }
-
-  static validationError(errors: ValidationError[]): ErrorResponse {
-    return this.error(
-      'VALIDATION_ERROR',
-      'Validation failed',
-      { errors },
-      400
-    );
-  }
-
-  static paginated<T>(
-    data: T[],
-    page: number,
-    limit: number,
-    total: number
-  ): SuccessResponse<T[]> {
-    return this.success(data, {
-      timestamp: new Date().toISOString(),
-      pagination: {
-        page,
-        limit,
-        total,
-        hasNext: page * limit < total,
-        hasPrev: page > 1
-      }
-    });
-  }
-}
+// Note: APIResponse moved to api-response.types.ts to avoid duplication
+// Import from there instead: import { ResponseBuilder } from './api-response.types';
 
 // Middleware type definitions
 export type ErrorHandlerMiddleware = (

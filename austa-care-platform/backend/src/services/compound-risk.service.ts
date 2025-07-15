@@ -489,7 +489,11 @@ export class CompoundRiskAnalysisService {
         timeline: '90 days',
         resources: ['Care coordinator', 'Specialist team', 'Digital monitoring'],
         monitoringRequirements: ['Weekly check-ins', 'Real-time vitals', 'Medication adherence'],
-        successMetrics: ['Risk score reduction', 'Emergency visits', 'Quality of life']
+        successMetrics: [
+          { metric: 'Risk score reduction', target: 25, unit: 'percentage', timeframe: '6 months', measurement: 'percentage' },
+          { metric: 'Emergency visits', target: 50, unit: 'reduction', timeframe: '1 year', measurement: 'percentage' },
+          { metric: 'Quality of life', target: 70, unit: 'score', timeframe: '6 months', measurement: 'absolute' }
+        ]
       });
     }
 
@@ -501,7 +505,10 @@ export class CompoundRiskAnalysisService {
         timeline: '60 days',
         resources: ['Specialized protocols', 'Patient education', 'Family involvement'],
         monitoringRequirements: ['Bi-weekly assessments', 'Biomarker tracking'],
-        successMetrics: ['Synergy score reduction', 'Individual condition improvement']
+        successMetrics: [
+          { metric: 'Synergy score reduction', target: 30, unit: 'percentage', timeframe: '60 days', measurement: 'percentage' },
+          { metric: 'Individual condition improvement', target: 40, unit: 'percentage', timeframe: '90 days', measurement: 'percentage' }
+        ]
       });
     }
 

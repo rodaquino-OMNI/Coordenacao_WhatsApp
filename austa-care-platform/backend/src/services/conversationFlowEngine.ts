@@ -542,7 +542,7 @@ export class ConversationFlowEngine {
       // Update conversation state
       state.conversationHistory.push(turn);
       state.currentNodeId = nextNode.id;
-      state.lastActivity = new Date();
+      state.metadata.lastActivity = new Date();
       state.metadata.totalTurns++;
       state.metadata.engagementScore = this.calculateEngagementScore(state);
       state.metadata.qualityScore = this.calculateQualityScore(state);

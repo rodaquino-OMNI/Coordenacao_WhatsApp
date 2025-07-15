@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { createWorker } from 'tesseract.js';
-import vision from '@google-cloud/vision';
+import { ImageAnnotatorClient } from '@google-cloud/vision';
 import { logger } from '../utils/logger';
 import { Document, DocumentType } from '../types/authorization';
 
@@ -10,7 +10,7 @@ import { Document, DocumentType } from '../types/authorization';
  */
 export class DocumentIntelligenceService extends EventEmitter {
   private tesseractWorker: any;
-  private googleVisionClient: vision.ImageAnnotatorClient;
+  private googleVisionClient: ImageAnnotatorClient;
   private documentValidators: Map<DocumentType, DocumentValidator>;
   private processingQueue: Map<string, Promise<any>>;
 
@@ -18,6 +18,7 @@ export class DocumentIntelligenceService extends EventEmitter {
     super();
     this.processingQueue = new Map();
     this.documentValidators = new Map();
+    this.googleVisionClient = new ImageAnnotatorClient();
     this.initializeOCREngines();
     this.initializeValidators();
   }
@@ -29,14 +30,13 @@ export class DocumentIntelligenceService extends EventEmitter {
     try {
       // Initialize Tesseract.js for basic OCR
       this.tesseractWorker = await createWorker({
-        logger: m => logger.debug('Tesseract:', m)
+        logger: (m: any) => logger.debug('Tesseract:', m)
       });
       
       await this.tesseractWorker.loadLanguage('eng+por');
       await this.tesseractWorker.initialize('eng+por');
 
-      // Initialize Google Cloud Vision for advanced OCR
-      this.googleVisionClient = new vision.ImageAnnotatorClient();
+      // Google Vision client already initialized in constructor
 
       logger.info('OCR engines initialized successfully');
     } catch (error) {

@@ -314,7 +314,20 @@ export interface RiskMitigationStrategy {
   timeline: string;
   resources: string[];
   monitoringRequirements: string[];
+  successMetrics?: SuccessMetric[];
 }
+
+export interface SuccessMetric {
+  metric: string;
+  target: number;
+  unit: string;
+  timeframe: string;
+  measurement: 'percentage' | 'absolute' | 'qualitative';
+}
+
+// Note: QuestionnaireResponse is defined in questionnaire.types.ts
+// Import from there to avoid duplication
+// export interface QuestionnaireResponse { ... } // Moved to questionnaire.types.ts
 
 export interface QuestionResponse {
   questionId: string;
@@ -363,4 +376,21 @@ export interface EmergencyFlag {
   condition: string;
   immediateAction: string;
   timeToAction: number; // minutes
+}
+
+// Base Risk Assessment interface
+export interface RiskAssessment {
+  id: string;
+  userId: string;
+  patientId?: string;
+  assessmentType: 'basic' | 'advanced' | 'comprehensive';
+  overallRisk: 'low' | 'moderate' | 'high' | 'critical';
+  riskScore: number;
+  riskFactors: RiskFactor[];
+  recommendations: string[];
+  emergencyFlags: EmergencyFlag[];
+  followupRequired: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  metadata?: Record<string, any>;
 }

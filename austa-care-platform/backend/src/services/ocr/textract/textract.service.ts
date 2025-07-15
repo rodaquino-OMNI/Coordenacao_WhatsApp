@@ -3,7 +3,7 @@
  * Core implementation for medical document OCR processing
  */
 
-import AWS from 'aws-sdk';
+import { TextractClient } from '@aws-sdk/client-textract';
 import { v4 as uuidv4 } from 'uuid';
 import {
   TextractConfiguration,

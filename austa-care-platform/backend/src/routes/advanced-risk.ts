@@ -3,9 +3,9 @@
  * RESTful API endpoints for sophisticated medical risk analysis
  */
 
-import express from 'express';
+import * as express from 'express';
 import { AdvancedRiskController } from '../controllers/advanced-risk-controller';
-import { validateRequest } from '../middleware/validation';
+import { validateJoi } from '../middleware/validation';
 import defaultRateLimiter from '../middleware/rateLimiter';
 import { authMiddleware } from '../middleware/auth';
 import * as Joi from 'joi';
@@ -62,7 +62,7 @@ router.use(defaultRateLimiter);
  * Returns: ComprehensiveRiskResponse
  */
 router.post('/assess', 
-  validateRequest(riskAssessmentSchema),
+  validateJoi(riskAssessmentSchema),
   async (req, res) => {
     try {
       await riskController.assessRisk(req, res);
@@ -83,7 +83,7 @@ router.post('/assess',
  * Returns: Emergency screening results with immediate actions
  */
 router.post('/emergency',
-  validateRequest(emergencyReassessmentSchema),
+  validateJoi(emergencyReassessmentSchema),
   async (req, res) => {
     try {
       await riskController.emergencyReassessment(req, res);

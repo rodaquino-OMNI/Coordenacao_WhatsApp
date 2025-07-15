@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
+import * as Joi from 'joi';
 import { logger } from '../utils/logger';
 
 /**
@@ -108,6 +109,43 @@ export const validateParams = (schema: z.ZodSchema<any>) => {
       next();
     } catch (error) {
       logger.error('Params validation middleware error', { error });
+      res.status(500).json({
+        error: 'Internal validation error'
+      });
+    }
+  };
+};
+
+/**
+ * Joi validation middleware for request body
+ */
+export const validateJoi = (schema: Joi.ObjectSchema<any>) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { error, value } = schema.validate(req.body, { abortEarly: false });
+      
+      if (error) {
+        logger.warn('Joi validation failed', {
+          path: req.path,
+          method: req.method,
+          errors: error.details,
+          body: req.body
+        });
+
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: error.details.map(err => ({
+            field: err.path.join('.'),
+            message: err.message,
+            code: err.type
+          }))
+        });
+      }
+
+      req.body = value;
+      next();
+    } catch (error) {
+      logger.error('Joi validation middleware error', { error });
       res.status(500).json({
         error: 'Internal validation error'
       });
